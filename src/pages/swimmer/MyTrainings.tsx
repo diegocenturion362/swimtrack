@@ -117,12 +117,15 @@ export function MyTrainings() {
                   </div>
                 </div>
 
-                {/* Estado previo */}
+                {/* Estado previo + comentario previo */}
                 <p className="text-xs text-slate-400">
                   Estado previo: {stateEmoji[ses.estadoPrevio]} {ses.estadoPrevio}
                 </p>
+                {ses.comentarioPrevio && (
+                  <p className="text-xs text-slate-400 italic mt-0.5">"{ses.comentarioPrevio}"</p>
+                )}
 
-                {/* Comentario del nadador */}
+                {/* Comentario del nadador (post) */}
                 {ses.comentarioNadador && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
                     <p className="text-xs text-slate-500 italic">"{ses.comentarioNadador}"</p>
@@ -141,7 +144,7 @@ export function MyTrainings() {
                 {sesSets.length > 0 && (
                   <div className="mt-3 pt-2 border-t border-slate-100">
                     <p className="text-xs font-bold text-slate-500 mb-1.5">
-                      Series ({sesSets.length})
+                      Series ({new Set(sesSets.map(s => s.grupo ?? s.id)).size})
                     </p>
                     <SetList sets={sesSets} showKey />
                   </div>

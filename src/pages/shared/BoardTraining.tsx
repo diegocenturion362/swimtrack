@@ -25,13 +25,14 @@ const MAX_REPS   = 30
 // Cada parte es N reps × distancia, con su propio material y tiempos.
 
 interface ParteForm {
-  id:         string
-  estilo:     Stroke
-  reps:       string
-  distancia:  string
-  descReps:   string            // descanso (entre reps, o antes de esta parte)
-  materiales: Material[]
-  tiempos:    Record<string, string>  // clave `${serie}_${rep}`
+  id:           string
+  estilo:       Stroke
+  reps:         string
+  distancia:    string
+  descReps:     string              // valor del descanso entre reps
+  tipoDescReps: 'salida' | 'fijo'  // 'salida'= salís cada X; 'fijo'= descansás X
+  materiales:   Material[]
+  tiempos:      Record<string, string>  // clave `${serie}_${rep}`
 }
 
 interface BloqueForm {
@@ -43,7 +44,8 @@ interface BloqueForm {
 
 const nuevaParte = (): ParteForm => ({
   id: `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-  estilo: 'libre', reps: '', distancia: '', descReps: '', materiales: [], tiempos: {},
+  estilo: 'libre', reps: '', distancia: '', descReps: '',
+  tipoDescReps: 'salida', materiales: [], tiempos: {},
 })
 
 const nuevoBloque = (): BloqueForm => ({
@@ -104,12 +106,13 @@ function parteDeSet(set: TrainingSet): ParteForm {
     )
   }
   return {
-    id:         `p-${set.id}`,
-    estilo:     set.estilo,
-    reps:       String(set.repeticiones),
-    distancia:  String(set.distancia),
-    descReps:   set.intervaloSalida ? String(mmssToSeg(set.intervaloSalida)) : '',
-    materiales: set.materiales ?? [],
+    id:           `p-${set.id}`,
+    estilo:       set.estilo,
+    reps:         String(set.repeticiones),
+    distancia:    String(set.distancia),
+    descReps:     set.intervaloSalida ? String(mmssToSeg(set.intervaloSalida)) : '',
+    tipoDescReps: set.tipoIntervaloReps ?? 'salida',
+    materiales:   set.materiales ?? [],
     tiempos,
   }
 }
@@ -169,6 +172,7 @@ export function BoardTraining({ mode }: Props) {
   const [sueno, setSueno]     = useState(String(editSession?.horasSueno ?? 8))
   const [sensacion, setSensacion] = useState<GeneralFeeling>(editSession?.sensacionGeneral ?? 'buena')
   const [estado, setEstado]       = useState<PreviousState>(editSession?.estadoPrevio ?? 'fresco')
+  const [comentarioPrevio, setComentarioPrevio] = useState(editSession?.comentarioPrevio ?? '')
   const [comentario, setComentario] = useState(
     editSession ? (mode === 'swimmer' ? editSession.comentarioNadador : editSession.comentarioEntrenador) : ''
   )
@@ -200,9 +204,17 @@ export function BoardTraining({ mode }: Props) {
     setBloques(bs => bs.map(b => b.id === bId ? { ...b, partes: [...b.partes, nuevaParte()] } : b))
 
   const removeParte = (bId: string, pId: string) =>
-    setBloques(bs => bs.map(b => b.id !== bId ? b : {
-      ...b, partes: b.partes.filter(p => p.id !== pId),
-    }))
+    setBloques(bs => {
+      const b = bs.find(x => x.id === bId)
+      if (!b) return bs
+      const partesFiltradas = b.partes.filter(p => p.id !== pId)
+      if (partesFiltradas.length === 0) {
+        // Si quedan 0 partes → eliminar el bloque (o reset si es el único)
+        const sinBloque = bs.filter(x => x.id !== bId)
+        return sinBloque.length === 0 ? [nuevoBloque()] : sinBloque
+      }
+      return bs.map(x => x.id === bId ? { ...x, partes: partesFiltradas } : x)
+    })
 
   // ── Totales ──────────────────────────────────────────────────────────────────
   const totalMetros = useMemo(
@@ -243,6 +255,7 @@ export function BoardTraining({ mode }: Props) {
       rpe, horasSueno: parseFloat(sueno) || 8,
       sensacionGeneral: sensacion,
       estadoPrevio:     estado,
+      comentarioPrevio:     comentarioPrevio || undefined,
       comentarioNadador:    mode === 'swimmer' ? comentario : (editSession?.comentarioNadador ?? ''),
       comentarioEntrenador: mode === 'coach'   ? comentario : (editSession?.comentarioEntrenador ?? ''),
     }
@@ -271,6 +284,7 @@ export function BoardTraining({ mode }: Props) {
           series:            S,
           estilo:            p.estilo,
           intervaloSalida:   intervalo,
+          tipoIntervaloReps: intervalo ? p.tipoDescReps : undefined,
           descanso:          restoTexto(b.descSeries, serieUnit),
           tiempoPromedio:    m.prom,
           mejorTiempo:       m.mejor,
@@ -376,14 +390,16 @@ export function BoardTraining({ mode }: Props) {
               key={b.id}
               bloque={b}
               idx={idx}
-              puedeBorrar={bloques.length > 1}
               distUnit={distUnit} repUnit={repUnit} serieUnit={serieUnit}
               onUpdate={patch => updateBloque(b.id, patch)}
               onUpdateParte={(pId, patch) => updateParte(b.id, pId, patch)}
               onTiempo={(pId, s, r, v) => setTiempo(b.id, pId, s, r, v)}
               onAddParte={() => addParte(b.id)}
               onRemoveParte={pId => removeParte(b.id, pId)}
-              onRemove={() => setBloques(bs => bs.filter(x => x.id !== b.id))}
+              onRemove={() => setBloques(bs => {
+                const sinEste = bs.filter(x => x.id !== b.id)
+                return sinEste.length === 0 ? [nuevoBloque()] : sinEste
+              })}
             />
           ))}
         </div>
@@ -432,30 +448,49 @@ export function BoardTraining({ mode }: Props) {
         <div className="mt-5">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensaciones (opcional)</p>
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 block mb-1">Sensación general</label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {(['muy buena','buena','regular','mala'] as GeneralFeeling[]).map(s => (
-                  <button key={s} type="button" onClick={() => setSensacion(s)}
-                    className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
-                      sensacion === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
-                ))}
+
+            {/* ANTES */}
+            <div className="rounded-xl border border-slate-100 p-3">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Antes del entreno</p>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">¿Cómo llegaste?</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['fresco','cansado','pesado','motivado','bajo de energía'] as PreviousState[]).map(s => (
+                    <button key={s} type="button" onClick={() => setEstado(s)}
+                      className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                        estado === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2">
+                <Field label="Comentario previo">
+                  <Textarea placeholder="Cómo te sentís antes, qué te propones…"
+                    value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)} />
+                </Field>
               </div>
             </div>
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 block mb-1">¿Cómo llegó al entreno?</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(['fresco','cansado','pesado','motivado','bajo de energía'] as PreviousState[]).map(s => (
-                  <button key={s} type="button" onClick={() => setEstado(s)}
-                    className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
-                      estado === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
-                ))}
+
+            {/* DESPUÉS */}
+            <div className="rounded-xl border border-slate-100 p-3">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Después del entreno</p>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Sensación general</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['muy buena','buena','regular','mala'] as GeneralFeeling[]).map(s => (
+                    <button key={s} type="button" onClick={() => setSensacion(s)}
+                      className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                        sensacion === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2">
+                <Field label={mode === 'coach' ? 'Comentario del entrenador' : 'Tu comentario'}>
+                  <Textarea placeholder="Sensaciones, observaciones, cómo resultó…"
+                    value={comentario} onChange={e => setComentario(e.target.value)} />
+                </Field>
               </div>
             </div>
-            <Field label={mode === 'coach' ? 'Comentario del entrenador' : 'Tu comentario'}>
-              <Textarea placeholder="Sensaciones, observaciones, cómo se sintió…"
-                value={comentario} onChange={e => setComentario(e.target.value)} />
-            </Field>
+
           </div>
         </div>
 
@@ -491,12 +526,11 @@ function Seg<T extends string>({ value, onChange, opciones }: {
 // ─── Tarjeta de un Trabajo (con sus partes) ──────────────────────────────────────
 
 function BloqueCard({
-  bloque: b, idx, puedeBorrar, distUnit, repUnit, serieUnit,
+  bloque: b, idx, distUnit, repUnit, serieUnit,
   onUpdate, onUpdateParte, onTiempo, onAddParte, onRemoveParte, onRemove,
 }: {
   bloque: BloqueForm
   idx: number
-  puedeBorrar: boolean
   distUnit: 'm' | 'yd'; repUnit: 's' | 'min'; serieUnit: 's' | 'min'
   onUpdate: (patch: Partial<BloqueForm>) => void
   onUpdateParte: (pId: string, patch: Partial<ParteForm>) => void
@@ -514,9 +548,7 @@ function BloqueCard({
     <Card padding="sm" className="border-blue-100">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">Trabajo {idx + 1}</span>
-        {puedeBorrar && (
-          <button onClick={onRemove} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={15} /></button>
-        )}
+        <button onClick={onRemove} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={15} /></button>
       </div>
 
       {/* Series del trabajo (se repite todo esto N veces) */}
@@ -534,7 +566,6 @@ function BloqueCard({
             idx={pi}
             series={S}
             mostrarTitulo={variasPartes}
-            puedeBorrar={variasPartes}
             distUnit={distUnit} repUnit={repUnit}
             onUpdate={patch => onUpdateParte(p.id, patch)}
             onTiempo={(s, r, v) => onTiempo(p.id, s, r, v)}
@@ -564,14 +595,13 @@ function BloqueCard({
 // ─── Una parte dentro de un Trabajo ──────────────────────────────────────────────
 
 function ParteRow({
-  parte: p, idx, series: S, mostrarTitulo, puedeBorrar, distUnit, repUnit,
+  parte: p, idx, series: S, mostrarTitulo, distUnit, repUnit,
   onUpdate, onTiempo, onRemove,
 }: {
   parte: ParteForm
   idx: number
   series: number
   mostrarTitulo: boolean
-  puedeBorrar: boolean
   distUnit: 'm' | 'yd'; repUnit: 's' | 'min'
   onUpdate: (patch: Partial<ParteForm>) => void
   onTiempo: (s: number, r: number, v: string) => void
@@ -579,6 +609,11 @@ function ParteRow({
 }) {
   const numLabel = (u: 'm' | 'yd' | 's' | 'min') => ({ m: 'm', yd: 'yd', s: 'seg', min: 'min' }[u])
   const m = metricasParte(p, S)
+
+  const descLabel = p.tipoDescReps === 'fijo'
+    ? `Desc. fijo (${numLabel(repUnit)})`
+    : `Salida cada (${numLabel(repUnit)})`
+  const descPlaceholder = p.tipoDescReps === 'fijo' ? '30' : '90'
 
   return (
     <div className={mostrarTitulo ? 'rounded-xl border border-slate-100 p-2.5' : ''}>
@@ -592,15 +627,31 @@ function ParteRow({
             {STROKES.map(s => <option key={s} value={s}>{strokeLabel[s]}</option>)}
           </Select>
         </div>
-        {puedeBorrar && (
-          <button onClick={onRemove} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={13} /></button>
-        )}
+        <button onClick={onRemove} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={13} /></button>
+      </div>
+
+      {/* Tipo de descanso entre reps */}
+      <div className="flex gap-1.5 mb-2">
+        <button type="button"
+          onClick={() => onUpdate({ tipoDescReps: 'salida' })}
+          className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+            p.tipoDescReps !== 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+          }`}>
+          Salida cada
+        </button>
+        <button type="button"
+          onClick={() => onUpdate({ tipoDescReps: 'fijo' })}
+          className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+            p.tipoDescReps === 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+          }`}>
+          Descanso fijo
+        </button>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Reps" value={p.reps} onChange={v => onUpdate({ reps: v })} placeholder="5" />
         <Mini label={`Dist. (${numLabel(distUnit)})`} value={p.distancia} onChange={v => onUpdate({ distancia: v })} placeholder="10" />
-        <Mini label={`Desc. (${numLabel(repUnit)})`} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder="5" />
+        <Mini label={descLabel} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder={descPlaceholder} />
       </div>
 
       <div className="mt-2">

@@ -58,7 +58,8 @@ export interface TrainingSession {
   horasSueno:          number
   sensacionGeneral:    GeneralFeeling
   estadoPrevio:        PreviousState
-  comentarioNadador:   string
+  comentarioPrevio?:   string  // sensaciones/observaciones ANTES del entreno
+  comentarioNadador:   string  // comentario DESPUÉS del entreno
   comentarioEntrenador: string
 }
 
@@ -72,6 +73,7 @@ export interface TrainingSet {
   series?:             number  // multiplicador externo en series compuestas (5 x 6 x 7)
   estilo:              Stroke
   intervaloSalida:     string  // "MM:SS"
+  tipoIntervaloReps?:  'salida' | 'fijo'  // cómo interpretar intervaloSalida (default: 'salida')
   descanso:            string  // "MM:SS"
   tiempoPromedio:      number  // segundos
   mejorTiempo:         number  // segundos
@@ -98,8 +100,11 @@ export interface Competition {
   ubicacion:           number  // puesto
   categoria:           string
   sensacionPrevia:     GeneralFeeling
-  sensacionPosterior:  GeneralFeeling
+  estadoPrevio?:       PreviousState  // cómo llegó a la carrera
+  comentarioPrevio?:   string          // observaciones antes de la carrera
   estrategia:          string
+  sensacionPosterior:  GeneralFeeling
+  comentarioNadador?:  string          // reflexión del nadador post-carrera
   errorPrincipal:      string
   aprendizaje:         string
   comentarioEntrenador: string

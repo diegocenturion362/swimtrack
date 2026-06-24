@@ -28,6 +28,7 @@ import { SwimmerAddTraining }    from './pages/swimmer/SwimmerAddTraining'
 import { ImportWorkout }         from './pages/shared/ImportWorkout'
 import { ImportCompetition }     from './pages/shared/ImportCompetition'
 import { BoardTraining }         from './pages/shared/BoardTraining'
+import { BoardCompetition }      from './pages/shared/BoardCompetition'
 
 // ─── Guard de autenticación ──────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ export function App() {
           <Route path="/coach/tablero" element={<RequireCoach><BoardTraining mode="coach" /></RequireCoach>} />
           <Route path="/coach/competencia" element={<RequireCoach><AddCompetition /></RequireCoach>} />
           <Route path="/coach/competencia-importar" element={<RequireCoach><ImportCompetition mode="coach" /></RequireCoach>} />
+          <Route path="/coach/competencia-tablero" element={<RequireCoach><BoardCompetition mode="coach" /></RequireCoach>} />
           <Route path="/coach/similares" element={<RequireCoach><SimilarSessions /></RequireCoach>} />
           <Route path="/coach/marcas" element={<RequireCoach><CoachMarks /></RequireCoach>} />
 
@@ -83,6 +85,7 @@ export function App() {
           <Route path="/nadador/:id/importar"  element={<RequireSwimmer><ImportWorkout mode="swimmer" /></RequireSwimmer>} />
           <Route path="/nadador/:id/tablero"   element={<RequireSwimmer><BoardTraining mode="swimmer" /></RequireSwimmer>} />
           <Route path="/nadador/:id/competencia-importar" element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
+          <Route path="/nadador/:id/competencia-tablero" element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

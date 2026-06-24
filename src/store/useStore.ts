@@ -41,7 +41,9 @@ interface AppState {
   deleteSet:     (id: string) => void
 
   // Acciones – Competencias
-  addCompetition: (c: Competition) => void
+  addCompetition:    (c: Competition) => void
+  updateCompetition: (id: string, data: Partial<Competition>) => void
+  deleteCompetition: (id: string) => void
 
   // Acciones – Marcas
   addPersonalBest: (pb: PersonalBest) => void
@@ -104,6 +106,12 @@ export const useStore = create<AppState>()(
       // Competencias
       addCompetition: (c) =>
         set(state => ({ competitions: [...state.competitions, c] })),
+      updateCompetition: (id, data) =>
+        set(state => ({
+          competitions: state.competitions.map(c => c.id === id ? { ...c, ...data } : c),
+        })),
+      deleteCompetition: (id) =>
+        set(state => ({ competitions: state.competitions.filter(c => c.id !== id) })),
 
       // Marcas
       addPersonalBest: (pb) =>
