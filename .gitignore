@@ -1,0 +1,18 @@
+# Dependencias
+node_modules
+
+# Build de producción
+dist
+dist-ssr
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editores / SO
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.local
+.vite
