@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, LogOut } from 'lucide-react'
 import { useStore } from '../../store/useStore'
+import { supabaseConfigured } from '../../lib/supabase'
 
 interface Props {
   title:       string
@@ -12,17 +13,23 @@ interface Props {
 }
 
 export function Header({ title, subtitle, showBack = false, backTo, showLogout = false, right }: Props) {
-  const navigate  = useNavigate()
-  const clearRole = useStore(s => s.clearRole)
+  const navigate   = useNavigate()
+  const clearRole  = useStore(s => s.clearRole)
+  const storeSignOut = useStore(s => s.signOut)
 
   const handleBack = () => {
     if (backTo) navigate(backTo)
     else        navigate(-1)
   }
 
-  const handleLogout = () => {
-    clearRole()
-    navigate('/')
+  const handleLogout = async () => {
+    if (supabaseConfigured) {
+      await storeSignOut()
+      navigate('/entrar', { replace: true })
+    } else {
+      clearRole()
+      navigate('/', { replace: true })
+    }
   }
 
   return (

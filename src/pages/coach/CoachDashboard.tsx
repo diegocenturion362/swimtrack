@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles
+  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles, Link2, X
 } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
@@ -10,17 +11,39 @@ import { StatusBadge } from '../../components/ui/Badge'
 import { useStore } from '../../store/useStore'
 import { detectSwimmerStatus, computeAlerts } from '../../utils/swimmerStatus'
 import { relativeDate, formatTime } from '../../utils/timeUtils'
-import { COACH } from '../../data/mockData'
 import type { SwimmerStatus } from '../../types'
 
 export function CoachDashboard() {
   const navigate = useNavigate()
-  const { swimmers, sessions, sets, competitions } = useStore(s => ({
+  const { swimmers, sessions, sets, competitions, coach, linkSwimmer } = useStore(s => ({
     swimmers:     s.swimmers,
     sessions:     s.sessions,
     sets:         s.sets,
     competitions: s.competitions,
+    coach:        s.coach,
+    linkSwimmer:  s.linkSwimmer,
   }))
+
+  const [mostrarVincular,  setMostrarVincular]  = useState(false)
+  const [codigoInput,      setCodigoInput]      = useState('')
+  const [vinculandoError,  setVinculandoError]  = useState('')
+  const [vinculandoNombre, setVinculandoNombre] = useState('')
+  const [vinculandoLoad,   setVinculandoLoad]   = useState(false)
+
+  async function handleVincular(e: React.FormEvent) {
+    e.preventDefault()
+    setVinculandoError('')
+    setVinculandoNombre('')
+    setVinculandoLoad(true)
+    const result = await linkSwimmer(codigoInput.trim().toUpperCase())
+    setVinculandoLoad(false)
+    if (result.error) {
+      setVinculandoError(result.error)
+    } else {
+      setVinculandoNombre(result.nombre ?? 'Nadador')
+      setCodigoInput('')
+    }
+  }
 
   // Calcular estado de cada nadador
   const summaries = swimmers.map(sw => {
@@ -57,7 +80,20 @@ export function CoachDashboard() {
 
   return (
     <>
-      <Header title={COACH.nombre} subtitle="Panel del entrenador" showLogout />
+      <Header
+        title={coach?.nombre ?? 'Entrenador'}
+        subtitle="Panel del entrenador"
+        showLogout
+        right={
+          <button
+            onClick={() => { setMostrarVincular(true); setVinculandoNombre(''); setVinculandoError('') }}
+            className="p-2 rounded-xl text-blue-700 hover:bg-blue-50 transition-colors"
+            title="Vincular nadador"
+          >
+            <Link2 size={18} />
+          </button>
+        }
+      />
       <PageLayout>
 
         {/* Stats */}
@@ -164,6 +200,59 @@ export function CoachDashboard() {
         </div>
 
       </PageLayout>
+
+      {/* ── Modal: vincular nadador ────────────────────────────────────────── */}
+      {mostrarVincular && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMostrarVincular(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl p-6 pb-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900">Vincular nadador</h3>
+              <button onClick={() => setMostrarVincular(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
+            {vinculandoNombre ? (
+              <div className="text-center py-2">
+                <div className="text-3xl mb-2">✅</div>
+                <p className="font-semibold text-slate-800">{vinculandoNombre} vinculado/a</p>
+                <p className="text-xs text-slate-500 mt-1 mb-4">Ya podés ver su perfil y cargarle entrenamientos.</p>
+                <button
+                  onClick={() => setMostrarVincular(false)}
+                  className="w-full bg-blue-600 text-white font-semibold rounded-lg py-3 text-sm"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleVincular} className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Pedile al nadador su código de acceso y escribilo acá.
+                </p>
+                <input
+                  type="text"
+                  value={codigoInput}
+                  onChange={e => setCodigoInput(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  required
+                  placeholder="XK7P2A"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-3 text-center text-xl font-bold font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                {vinculandoError && (
+                  <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{vinculandoError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={vinculandoLoad || codigoInput.length < 4}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 text-sm disabled:opacity-60"
+                >
+                  {vinculandoLoad ? 'Buscando…' : 'Vincular nadador'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

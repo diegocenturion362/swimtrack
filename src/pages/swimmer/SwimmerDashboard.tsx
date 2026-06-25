@@ -170,6 +170,21 @@ export function SwimmerDashboard() {
           </>
         )}
 
+        {/* Código de acceso (para compartir con el entrenador) */}
+        {swimmer.codigoAcceso && (
+          <Card className="mb-4 bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 mb-0.5">CÓDIGO PARA TU ENTRENADOR</p>
+                <p className="text-2xl font-bold font-mono tracking-widest text-blue-800">{swimmer.codigoAcceso}</p>
+              </div>
+              <p className="text-xs text-slate-400 leading-tight max-w-[120px] text-right">
+                Compartilo para que te vincule en la app
+              </p>
+            </div>
+          </Card>
+        )}
+
         {/* Últimas sesiones */}
         <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Últimas sesiones</h2>
         <div className="flex flex-col gap-2">

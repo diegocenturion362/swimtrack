@@ -1,39 +1,48 @@
 import { create } from 'zustand'
 import type {
   Swimmer, TrainingSession, TrainingSet,
-  Competition, PersonalBest
+  Competition, PersonalBest, Coach,
 } from '../types'
 import { MOCK_SWIMMERS } from '../data/mockData'
-import { supabaseConfigured } from '../lib/supabase'
+import { supabase, supabaseConfigured } from '../lib/supabase'
 import * as db from '../lib/db'
 
-// Para suscribir el realtime una sola vez (React monta dos veces en dev)
-let realtimeIniciado = false
+let realtimeIniciado   = false
+let authListenerSetup  = false
 
 // ─── Estado ──────────────────────────────────────────────────────────────────
 
 interface AppState {
-  // Rol activo (vive solo en este dispositivo, no se guarda)
+  // Auth
+  authUserId:  string | null
+  userRole:    'coach' | 'swimmer' | null
+  coach:       Coach | null
+
+  // Rol legacy (para modo mock sin Supabase)
   currentRole:      'coach' | 'swimmer' | null
   currentSwimmerId: string | null
 
-  // Carga inicial
-  loaded:  boolean
+  // Carga
+  loaded: boolean
 
-  // Datos (cache en memoria; la fuente de verdad es Supabase)
-  swimmers:     Swimmer[]
-  sessions:     TrainingSession[]
-  sets:         TrainingSet[]
-  competitions: Competition[]
+  // Datos
+  swimmers:      Swimmer[]
+  sessions:      TrainingSession[]
+  sets:          TrainingSet[]
+  competitions:  Competition[]
   personalBests: PersonalBest[]
 
-  // Carga / sincronización
-  loadAll:          () => Promise<void>
-  subscribeRealtime: () => void
+  // Auth
+  initAuth:        () => Promise<void>
+  signOut:         () => Promise<void>
+  linkSwimmer:     (codigo: string) => Promise<{ nombre?: string; error?: string }>
 
-  // Acciones – Rol
-  setRole:       (role: 'coach' | 'swimmer', swimmerId?: string) => void
-  clearRole:     () => void
+  // Rol legacy (modo mock)
+  setRole:   (role: 'coach' | 'swimmer', swimmerId?: string) => void
+  clearRole: () => void
+
+  // Realtime
+  subscribeRealtime: () => void
 
   // Acciones – Nadadores
   addSwimmer:    (s: Swimmer) => void
@@ -45,8 +54,8 @@ interface AppState {
   deleteSession: (id: string) => void
 
   // Acciones – Series
-  addSet:        (s: TrainingSet) => void
-  deleteSet:     (id: string) => void
+  addSet:    (s: TrainingSet) => void
+  deleteSet: (id: string) => void
 
   // Acciones – Competencias
   addCompetition:    (c: Competition) => void
@@ -67,6 +76,9 @@ interface AppState {
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useStore = create<AppState>()((set, get) => ({
+  authUserId:       null,
+  userRole:         null,
+  coach:            null,
   currentRole:      null,
   currentSwimmerId: null,
   loaded:           false,
@@ -77,33 +89,75 @@ export const useStore = create<AppState>()((set, get) => ({
   competitions:  [],
   personalBests: [],
 
-  // ── Carga / sync ──────────────────────────────────────────────────────────
-  loadAll: async () => {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  initAuth: async () => {
+    // Modo mock (sin Supabase): funciona con datos locales, sin login
     if (!supabaseConfigured) {
-      // Sin Supabase configurado: funciona en memoria con el nadador de ejemplo.
       set({ swimmers: MOCK_SWIMMERS, sessions: [], sets: [], competitions: [], personalBests: [], loaded: true })
       return
     }
+
+    // Registrar listener de cambios de sesión una sola vez
+    if (!authListenerSetup) {
+      authListenerSetup = true
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          get().signOut()
+        } else if (event === 'SIGNED_IN' && session) {
+          await loadAsUser(session.user.id, set, get)
+        }
+      })
+    }
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      set({ loaded: true, userRole: null, authUserId: null })
+      return
+    }
+
+    await loadAsUser(session.user.id, set, get)
+  },
+
+  signOut: async () => {
+    if (supabaseConfigured) await db.signOut()
+    realtimeIniciado  = false
+    authListenerSetup = false
+    set({
+      authUserId: null, userRole: null, coach: null,
+      currentRole: null, currentSwimmerId: null,
+      swimmers: [], sessions: [], sets: [], competitions: [], personalBests: [],
+    })
+  },
+
+  linkSwimmer: async (codigo) => {
+    const result = await db.linkSwimmerByCode(codigo)
+    if (result.error) return result
+    // Recargar lista de nadadores
     try {
       const data = await db.fetchAll()
-      set({ ...data, loaded: true })
-    } catch (e) {
-      console.error('Error cargando datos de Supabase', e)
-      set({ loaded: true })   // que la app no quede colgada en "cargando"
-    }
+      set({ swimmers: data.swimmers })
+    } catch {}
+    return result
   },
 
-  subscribeRealtime: () => {
-    if (!supabaseConfigured || realtimeIniciado) return
-    realtimeIniciado = true
-    db.subscribeChanges(() => { get().loadAll() })
-  },
-
-  // ── Rol ──────────────────────────────────────────────────────────────────
+  // ── Rol legacy (modo mock) ────────────────────────────────────────────────
   setRole: (role, swimmerId) =>
     set({ currentRole: role, currentSwimmerId: swimmerId ?? null }),
   clearRole: () =>
     set({ currentRole: null, currentSwimmerId: null }),
+
+  // ── Realtime ──────────────────────────────────────────────────────────────
+  subscribeRealtime: () => {
+    if (!supabaseConfigured || realtimeIniciado) return
+    realtimeIniciado = true
+    db.subscribeChanges(async () => {
+      try {
+        const data = await db.fetchAll()
+        set(data)
+      } catch {}
+    })
+  },
 
   // ── Nadadores ────────────────────────────────────────────────────────────
   addSwimmer: (s) => {
@@ -201,3 +255,41 @@ export const useStore = create<AppState>()((set, get) => ({
   getSessionSets: (sessionId) =>
     get().sets.filter(s => s.trainingSessionId === sessionId),
 }))
+
+// ─── Helper interno ───────────────────────────────────────────────────────────
+
+async function loadAsUser(
+  uid: string,
+  set: (patch: Partial<AppState>) => void,
+  get: () => AppState,
+) {
+  const role = await db.getUserRole(uid)
+  set({
+    authUserId:       uid,
+    userRole:         role,
+    currentRole:      role,
+    currentSwimmerId: role === 'swimmer' ? uid : null,
+  })
+
+  if (!role) {
+    // Cuenta creada pero perfil todavía no completado
+    set({ loaded: true })
+    return
+  }
+
+  try {
+    const data = await db.fetchAll()
+    // Para coaches: cargar también el perfil del coach
+    let coach: Coach | null = null
+    if (role === 'coach') {
+      const { data: cd } = await supabase.from('coaches').select('data').eq('id', uid).maybeSingle()
+      if (cd) coach = cd.data as Coach
+    }
+    set({ ...data, coach, loaded: true })
+  } catch (e) {
+    console.error('[store] loadAsUser', e)
+    set({ loaded: true })
+  }
+
+  if (!realtimeIniciado) get().subscribeRealtime()
+}

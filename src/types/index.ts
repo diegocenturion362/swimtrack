@@ -44,6 +44,13 @@ export interface Swimmer {
   marcaObjetivo:   number   // segundos
   objetivoTemporada: string
   entrenadorId:    string
+  codigoAcceso?:   string   // generado por Supabase, solo visible para el nadador
+}
+
+export interface Coach {
+  id:         string   // auth.uid()
+  nombre:     string
+  clubEquipo: string
 }
 
 export interface TrainingSession {

@@ -1,10 +1,15 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useStore } from './store/useStore'
+import { supabaseConfigured } from './lib/supabase'
 
 // Layout
 import { BottomNav } from './components/layout/BottomNav'
 import { ErrorBoundary } from './components/ErrorBoundary'
+
+// Auth
+import { LoginPage }    from './pages/auth/LoginPage'
+import { RegisterPage } from './pages/auth/RegisterPage'
 
 // Páginas públicas
 import { RoleSelector } from './pages/RoleSelector'
@@ -19,33 +24,51 @@ import { SimilarSessions }   from './pages/coach/SimilarSessions'
 import { CoachMarks }        from './pages/coach/CoachMarks'
 
 // Swimmer
-import { SwimmerDashboard } from './pages/swimmer/SwimmerDashboard'
-import { MyTrainings }       from './pages/swimmer/MyTrainings'
-import { MyMarks }           from './pages/swimmer/MyMarks'
-import { MyEvolution }           from './pages/swimmer/MyEvolution'
-import { SwimmerAddTraining }    from './pages/swimmer/SwimmerAddTraining'
+import { SwimmerDashboard }   from './pages/swimmer/SwimmerDashboard'
+import { MyTrainings }         from './pages/swimmer/MyTrainings'
+import { MyMarks }             from './pages/swimmer/MyMarks'
+import { MyEvolution }         from './pages/swimmer/MyEvolution'
+import { SwimmerAddTraining }  from './pages/swimmer/SwimmerAddTraining'
 
 // Compartido
-import { ImportWorkout }         from './pages/shared/ImportWorkout'
-import { ImportCompetition }     from './pages/shared/ImportCompetition'
-import { BoardTraining }         from './pages/shared/BoardTraining'
-import { BoardCompetition }      from './pages/shared/BoardCompetition'
+import { ImportWorkout }     from './pages/shared/ImportWorkout'
+import { ImportCompetition } from './pages/shared/ImportCompetition'
+import { BoardTraining }     from './pages/shared/BoardTraining'
+import { BoardCompetition }  from './pages/shared/BoardCompetition'
 
-// ─── Guard de autenticación ──────────────────────────────────────────────────
+// ─── Guards ───────────────────────────────────────────────────────────────────
+
+const RUTA_NO_AUTH = supabaseConfigured ? '/entrar' : '/'
 
 function RequireCoach({ children }: { children: React.ReactNode }) {
-  const role = useStore(s => s.currentRole)
-  if (role !== 'coach') return <Navigate to="/" replace />
+  const { currentRole, loaded } = useStore(s => ({ currentRole: s.currentRole, loaded: s.loaded }))
+  if (!loaded) return null
+  if (currentRole !== 'coach') return <Navigate to={RUTA_NO_AUTH} replace />
   return <>{children}</>
 }
 
 function RequireSwimmer({ children }: { children: React.ReactNode }) {
-  const role = useStore(s => s.currentRole)
-  if (role !== 'swimmer') return <Navigate to="/" replace />
+  const { currentRole, loaded } = useStore(s => ({ currentRole: s.currentRole, loaded: s.loaded }))
+  if (!loaded) return null
+  if (currentRole !== 'swimmer') return <Navigate to={RUTA_NO_AUTH} replace />
   return <>{children}</>
 }
 
-// ─── Scroll al top en cada navegación ───────────────────────────────────────
+// ─── Redirección raíz (modo Supabase) ────────────────────────────────────────
+
+function RootRedirect() {
+  const { userRole, authUserId, loaded } = useStore(s => ({
+    userRole:   s.userRole,
+    authUserId: s.authUserId,
+    loaded:     s.loaded,
+  }))
+  if (!loaded) return null
+  if (userRole === 'swimmer' && authUserId) return <Navigate to={`/nadador/${authUserId}`} replace />
+  if (userRole === 'coach')                 return <Navigate to="/coach" replace />
+  return <Navigate to="/entrar" replace />
+}
+
+// ─── Scroll al top en cada navegación ────────────────────────────────────────
 
 function ScrollTop() {
   const { pathname } = useLocation()
@@ -56,14 +79,9 @@ function ScrollTop() {
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 export function App() {
-  const loaded            = useStore(s => s.loaded)
-  const loadAll           = useStore(s => s.loadAll)
-  const subscribeRealtime = useStore(s => s.subscribeRealtime)
+  const { loaded, initAuth } = useStore(s => ({ loaded: s.loaded, initAuth: s.initAuth }))
 
-  useEffect(() => {
-    loadAll()
-    subscribeRealtime()
-  }, [loadAll, subscribeRealtime])
+  useEffect(() => { initAuth() }, [initAuth])
 
   if (!loaded) {
     return (
@@ -78,40 +96,46 @@ export function App() {
     <BrowserRouter>
       <ScrollTop />
       <ErrorBoundary>
-      <div className="bg-slate-50 min-h-screen">
-        <Routes>
-          {/* Selector de rol */}
-          <Route path="/" element={<RoleSelector />} />
+        <div className="bg-slate-50 min-h-screen">
+          <Routes>
+            {/* Raíz */}
+            <Route path="/" element={
+              supabaseConfigured ? <RootRedirect /> : <RoleSelector />
+            } />
 
-          {/* Coach */}
-          <Route path="/coach" element={<RequireCoach><CoachDashboard /></RequireCoach>} />
-          <Route path="/coach/nadadores" element={<RequireCoach><SwimmerList /></RequireCoach>} />
-          <Route path="/coach/nadadores/:id" element={<RequireCoach><SwimmerProfile /></RequireCoach>} />
-          <Route path="/coach/registrar" element={<RequireCoach><AddTraining /></RequireCoach>} />
-          <Route path="/coach/importar" element={<RequireCoach><ImportWorkout mode="coach" /></RequireCoach>} />
-          <Route path="/coach/tablero" element={<RequireCoach><BoardTraining mode="coach" /></RequireCoach>} />
-          <Route path="/coach/competencia" element={<RequireCoach><AddCompetition /></RequireCoach>} />
-          <Route path="/coach/competencia-importar" element={<RequireCoach><ImportCompetition mode="coach" /></RequireCoach>} />
-          <Route path="/coach/competencia-tablero" element={<RequireCoach><BoardCompetition mode="coach" /></RequireCoach>} />
-          <Route path="/coach/similares" element={<RequireCoach><SimilarSessions /></RequireCoach>} />
-          <Route path="/coach/marcas" element={<RequireCoach><CoachMarks /></RequireCoach>} />
+            {/* Auth */}
+            <Route path="/entrar"   element={<LoginPage />} />
+            <Route path="/registro" element={<RegisterPage />} />
 
-          {/* Swimmer */}
-          <Route path="/nadador/:id" element={<RequireSwimmer><SwimmerDashboard /></RequireSwimmer>} />
-          <Route path="/nadador/:id/entrenos" element={<RequireSwimmer><MyTrainings /></RequireSwimmer>} />
-          <Route path="/nadador/:id/marcas" element={<RequireSwimmer><MyMarks /></RequireSwimmer>} />
-          <Route path="/nadador/:id/evolucion"  element={<RequireSwimmer><MyEvolution /></RequireSwimmer>} />
-          <Route path="/nadador/:id/registrar" element={<RequireSwimmer><SwimmerAddTraining /></RequireSwimmer>} />
-          <Route path="/nadador/:id/importar"  element={<RequireSwimmer><ImportWorkout mode="swimmer" /></RequireSwimmer>} />
-          <Route path="/nadador/:id/tablero"   element={<RequireSwimmer><BoardTraining mode="swimmer" /></RequireSwimmer>} />
-          <Route path="/nadador/:id/competencia-importar" element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
-          <Route path="/nadador/:id/competencia-tablero" element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
+            {/* Coach */}
+            <Route path="/coach"                     element={<RequireCoach><CoachDashboard /></RequireCoach>} />
+            <Route path="/coach/nadadores"           element={<RequireCoach><SwimmerList /></RequireCoach>} />
+            <Route path="/coach/nadadores/:id"       element={<RequireCoach><SwimmerProfile /></RequireCoach>} />
+            <Route path="/coach/registrar"           element={<RequireCoach><AddTraining /></RequireCoach>} />
+            <Route path="/coach/importar"            element={<RequireCoach><ImportWorkout mode="coach" /></RequireCoach>} />
+            <Route path="/coach/tablero"             element={<RequireCoach><BoardTraining mode="coach" /></RequireCoach>} />
+            <Route path="/coach/competencia"         element={<RequireCoach><AddCompetition /></RequireCoach>} />
+            <Route path="/coach/competencia-importar" element={<RequireCoach><ImportCompetition mode="coach" /></RequireCoach>} />
+            <Route path="/coach/competencia-tablero"  element={<RequireCoach><BoardCompetition mode="coach" /></RequireCoach>} />
+            <Route path="/coach/similares"           element={<RequireCoach><SimilarSessions /></RequireCoach>} />
+            <Route path="/coach/marcas"              element={<RequireCoach><CoachMarks /></RequireCoach>} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <BottomNav />
-      </div>
+            {/* Swimmer */}
+            <Route path="/nadador/:id"                         element={<RequireSwimmer><SwimmerDashboard /></RequireSwimmer>} />
+            <Route path="/nadador/:id/entrenos"                element={<RequireSwimmer><MyTrainings /></RequireSwimmer>} />
+            <Route path="/nadador/:id/marcas"                  element={<RequireSwimmer><MyMarks /></RequireSwimmer>} />
+            <Route path="/nadador/:id/evolucion"               element={<RequireSwimmer><MyEvolution /></RequireSwimmer>} />
+            <Route path="/nadador/:id/registrar"               element={<RequireSwimmer><SwimmerAddTraining /></RequireSwimmer>} />
+            <Route path="/nadador/:id/importar"                element={<RequireSwimmer><ImportWorkout mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/tablero"                 element={<RequireSwimmer><BoardTraining mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/competencia-importar"    element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/competencia-tablero"     element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <BottomNav />
+        </div>
       </ErrorBoundary>
     </BrowserRouter>
   )
