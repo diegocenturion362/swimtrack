@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Trophy, Plus, ChevronDown, ChevronUp, Pencil, Trash2, Timer, X } from 'lucide-react'
+import { Trophy, Plus, ChevronDown, ChevronUp, Pencil, Trash2, Timer } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -41,9 +41,15 @@ export function MyMarks() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [filtroPrueba, setFiltroPrueba] = useState('')
 
-  const pruebasFiltradas = filtroPrueba
-    ? pruebas.filter(p => p.toLowerCase().includes(filtroPrueba.toLowerCase()))
-    : pruebas
+  // Cuando hay un chip activo → exact match; sin filtro → todas
+  const pruebasFiltradas = filtroPrueba ? [filtroPrueba] : pruebas
+  const compsFiltradas   = filtroPrueba ? myComps.filter(c => c.prueba === filtroPrueba) : myComps
+
+  const handleFiltro = (prueba: string) => {
+    const nueva = filtroPrueba === prueba ? '' : prueba
+    setFiltroPrueba(nueva)
+    if (nueva) setExpandedPruebas(prev => { const n = new Set(prev); n.add(nueva); return n })
+  }
 
   const toggleComp = (id: string) =>
     setExpandedComps(prev => {
@@ -136,22 +142,34 @@ export function MyMarks() {
         {/* ── Historial por prueba ──────────────────────────────────────────── */}
         {myComps.length > 0 && (
           <>
-            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
               Historial por prueba
             </h2>
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="text"
-                placeholder="Buscar prueba…"
-                value={filtroPrueba}
-                onChange={e => setFiltroPrueba(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {filtroPrueba && (
-                <button onClick={() => setFiltroPrueba('')} className="p-2 text-slate-400 hover:text-slate-600">
-                  <X size={15} />
+
+            {/* Chips de prueba */}
+            <div className="overflow-x-auto -mx-4 px-4 pb-1 mb-3">
+              <div className="flex gap-2 w-max">
+                <button
+                  onClick={() => setFiltroPrueba('')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    !filtroPrueba ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  Todas ({myComps.length})
                 </button>
-              )}
+                {pruebas.map(p => {
+                  const n = myComps.filter(c => c.prueba === p).length
+                  return (
+                    <button key={p} onClick={() => handleFiltro(p)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                        filtroPrueba === p ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {p} ({n})
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="flex flex-col gap-3 mb-5">
               {pruebasFiltradas.map(prueba => {
@@ -203,10 +221,12 @@ export function MyMarks() {
         {myComps.length > 0 && (
           <>
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-              Todas las competencias
+              {filtroPrueba
+                ? `${filtroPrueba} — cronológico (${compsFiltradas.length})`
+                : `Todas las competencias (${myComps.length})`}
             </h2>
             <div className="flex flex-col gap-2">
-              {myComps.map(c => (
+              {compsFiltradas.map(c => (
                 <CompCard
                   key={c.id}
                   comp={c}
