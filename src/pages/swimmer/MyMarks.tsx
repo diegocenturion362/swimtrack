@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Trophy, Plus, ChevronDown, ChevronUp, Pencil, Trash2, Timer } from 'lucide-react'
+import { Trophy, Plus, ChevronDown, ChevronUp, Pencil, Trash2, Timer, X } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -39,6 +39,11 @@ export function MyMarks() {
   const [expandedComps, setExpandedComps] = useState<Set<string>>(new Set())
   const [expandedPruebas, setExpandedPruebas] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [filtroPrueba, setFiltroPrueba] = useState('')
+
+  const pruebasFiltradas = filtroPrueba
+    ? pruebas.filter(p => p.toLowerCase().includes(filtroPrueba.toLowerCase()))
+    : pruebas
 
   const toggleComp = (id: string) =>
     setExpandedComps(prev => {
@@ -134,8 +139,22 @@ export function MyMarks() {
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
               Historial por prueba
             </h2>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Buscar prueba…"
+                value={filtroPrueba}
+                onChange={e => setFiltroPrueba(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {filtroPrueba && (
+                <button onClick={() => setFiltroPrueba('')} className="p-2 text-slate-400 hover:text-slate-600">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
             <div className="flex flex-col gap-3 mb-5">
-              {pruebas.map(prueba => {
+              {pruebasFiltradas.map(prueba => {
                 const compsDeEstaPrueba = myComps.filter(c => c.prueba === prueba)
                   .sort((a, b) => b.fecha.localeCompare(a.fecha))
                 const mejor = [...compsDeEstaPrueba].sort((a, b) => a.tiempoFinal - b.tiempoFinal)[0]

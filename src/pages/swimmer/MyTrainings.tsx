@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { CalendarDays, X, Pencil } from 'lucide-react'
+import { CalendarDays, X, Pencil, Trash2 } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -19,8 +19,11 @@ const stateEmoji: Record<string, string> = {
 export function MyTrainings() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { sessions, sets } = useStore(s => ({ sessions: s.sessions, sets: s.sets }))
+  const { sessions, sets, deleteSession } = useStore(s => ({
+    sessions: s.sessions, sets: s.sets, deleteSession: s.deleteSession,
+  }))
   const [fechaSel, setFechaSel] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const swSessions = sessions
     .filter(s => s.swimmerId === id)
@@ -81,7 +84,18 @@ export function MyTrainings() {
         )}
         <div className="flex flex-col gap-3">
           {visibles.map(ses => {
-            const sesSets = sets.filter(s => s.trainingSessionId === ses.id)
+            const sesSets = sets
+              .filter(s => s.trainingSessionId === ses.id)
+              .sort((a, b) => {
+                if (a.orden !== undefined && b.orden !== undefined) return a.orden - b.orden
+                const pa = a.id.split('-'), pb = b.id.split('-')
+                if (pa.length >= 5 && pb.length >= 5) {
+                  const biA = parseInt(pa[pa.length - 2]) || 0, piA = parseInt(pa[pa.length - 1]) || 0
+                  const biB = parseInt(pb[pb.length - 2]) || 0, piB = parseInt(pb[pb.length - 1]) || 0
+                  return (biA * 100 + piA) - (biB * 100 + piB)
+                }
+                return (parseInt(pa[pa.length - 1]) || 0) - (parseInt(pb[pb.length - 1]) || 0)
+              })
             return (
               <Card key={ses.id} className="fade-in">
                 {/* Header */}
@@ -150,13 +164,38 @@ export function MyTrainings() {
                   </div>
                 )}
 
-                {/* Editar */}
-                <button
-                  onClick={() => navigate(`/nadador/${id}/tablero?edit=${ses.id}`)}
-                  className="flex items-center gap-1.5 mt-3 text-xs font-semibold text-blue-700"
-                >
-                  <Pencil size={13} /> Editar entrenamiento
-                </button>
+                {/* Acciones */}
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={() => navigate(`/nadador/${id}/tablero?edit=${ses.id}`)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-blue-700"
+                  >
+                    <Pencil size={13} /> Editar
+                  </button>
+                  {confirmDeleteId === ses.id ? (
+                    <>
+                      <button
+                        onClick={() => { deleteSession(ses.id); setConfirmDeleteId(null) }}
+                        className="flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-red-500"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="text-xs font-semibold text-slate-400"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(ses.id)}
+                      className="flex items-center gap-1 text-xs font-semibold text-red-400"
+                    >
+                      <Trash2 size={13} /> Eliminar
+                    </button>
+                  )}
+                </div>
               </Card>
             )
           })}

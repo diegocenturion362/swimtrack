@@ -44,7 +44,14 @@ export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKe
               : `salida @${s.intervaloSalida}${series ? ' (reps)' : ''}`
           )
         }
-        if (s.descanso) detalle.push(`${s.descanso}${series ? ' entre series' : ' desc.'}`)
+        if (s.descanso) {
+          if (series) {
+            const tipo = s.tipoDescansoSeries ?? 'salida'
+            detalle.push(tipo === 'fijo' ? `desc. ${s.descanso} entre series` : `salida @${s.descanso} entre series`)
+          } else {
+            detalle.push(`${s.descanso} desc.`)
+          }
+        }
         if (s.materiales?.length) detalle.push(s.materiales.map(m => materialLabel[m]).join(', '))
 
         const grupos = (s.tiempos ?? [])
@@ -150,7 +157,11 @@ function GrupoCompuesto({ sets, showKey }: { sets: TrainingSet[]; showKey: boole
               ) : null
             })}
             {descSeries && (
-              <p className="text-[10px] text-slate-400">{descSeries} entre series</p>
+              <p className="text-[10px] text-slate-400">
+                {(first.tipoDescansoSeries ?? 'salida') === 'fijo'
+                  ? `desc. ${descSeries} entre series`
+                  : `salida @${descSeries} entre series`}
+              </p>
             )}
           </div>
 

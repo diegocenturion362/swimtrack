@@ -82,6 +82,8 @@ export interface TrainingSet {
   tiempos?:            number[][]  // tiempos por [serie][repetición] (0 = vacío)
   materiales:          Material[]  // materiales usados (puede ser varios juntos)
   grupo?:              string      // id del "Trabajo" cuando tiene varias partes
+  tipoDescansoSeries?: 'salida' | 'fijo'  // cómo interpretar descanso entre series
+  orden?:              number      // posición en la sesión (para orden determinístico)
   objetivoSerie:       SetObjective
   observacionTecnica:  string
   claveSimilitud:      string  // ej: "8x50-libre-Pileta25-Intervalo0:45"

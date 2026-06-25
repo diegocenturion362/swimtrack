@@ -168,6 +168,7 @@ export function ImportWorkout({ mode }: Props) {
         tiempos:           s.tiempos.length ? [s.tiempos] : undefined,
         materiales:        s.materiales,
         grupo:             s.grupo,
+        orden:             i,
         objetivoSerie:     'resistencia',
         observacionTecnica: s.descripcion,
         claveSimilitud:    clave,

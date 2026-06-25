@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Plus, Trash2, Check, Table2, Type, Ruler, Clock } from 'lucide-react'
+import { Plus, Trash2, Check, Table2, Type, Ruler } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -36,10 +36,13 @@ interface ParteForm {
 }
 
 interface BloqueForm {
-  id:         string
-  series:     string
-  descSeries: string
-  partes:     ParteForm[]
+  id:              string
+  series:          string
+  descSeries:      string
+  serieUnit:       's' | 'min'          // unidad del descanso entre series
+  tipoDescSeries:  'salida' | 'fijo'   // tipo de descanso entre series
+  repUnit:         's' | 'min'          // unidad del descanso entre reps (todas las partes)
+  partes:          ParteForm[]
 }
 
 const nuevaParte = (): ParteForm => ({
@@ -50,7 +53,9 @@ const nuevaParte = (): ParteForm => ({
 
 const nuevoBloque = (): BloqueForm => ({
   id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-  series: '', descSeries: '', partes: [nuevaParte()],
+  series: '', descSeries: '',
+  serieUnit: 'min', tipoDescSeries: 'salida', repUnit: 's',
+  partes: [nuevaParte()],
 })
 
 // ─── Helpers de tiempo/unidades ────────────────────────────────────────────────
@@ -130,10 +135,13 @@ function bloquesDeSets(editSets: TrainingSet[]): BloqueForm[] {
     const first = sets[0]
     const minSeries = first.descanso ? mmssToSeg(first.descanso) / 60 : 0
     return {
-      id:         `b-${g}`,
-      series:     String(first.series ?? 1),
-      descSeries: minSeries ? String(Math.round(minSeries * 100) / 100) : '',
-      partes:     sets.map(parteDeSet),
+      id:             `b-${g}`,
+      series:         String(first.series ?? 1),
+      descSeries:     minSeries ? String(Math.round(minSeries * 100) / 100) : '',
+      serieUnit:      'min' as const,
+      tipoDescSeries: (first.tipoDescansoSeries ?? 'salida') as 'salida' | 'fijo',
+      repUnit:        's' as const,
+      partes:         sets.map(parteDeSet),
     }
   })
 }
@@ -164,8 +172,6 @@ export function BoardTraining({ mode }: Props) {
   )
   const [pileta, setPileta]   = useState<PoolSize>(editSession?.pileta ?? '25m')
   const [distUnit, setDistUnit] = useState<'m' | 'yd'>('m')
-  const [repUnit, setRepUnit]   = useState<'s' | 'min'>('s')
-  const [serieUnit, setSerieUnit] = useState<'s' | 'min'>('min')
   const [fecha, setFecha]     = useState(editSession?.fecha ?? new Date().toISOString().slice(0, 10))
   const [tipo, setTipo]       = useState<TrainingType>(editSession?.tipoEntrenamiento ?? 'mixto')
   const [rpe, setRpe]         = useState(editSession?.rpe ?? 6)
@@ -229,14 +235,14 @@ export function BoardTraining({ mode }: Props) {
       let porSerie = 0
       for (const p of b.partes) {
         const m = metricasParte(p, S)
-        const dr = restoEnSeg(p.descReps, repUnit)
+        const dr = restoEnSeg(p.descReps, b.repUnit)
         const nado = m.tiempos.length ? (m.prom * S * m.R) : (m.dist / 100 * 100) * S * m.R
         porSerie += nado + S * m.R * dr
       }
-      seg += porSerie + Math.max(0, S - 1) * restoEnSeg(b.descSeries, serieUnit)
+      seg += porSerie + Math.max(0, S - 1) * restoEnSeg(b.descSeries, b.serieUnit)
     }
     return Math.round(seg / 60)
-  }, [bloques, repUnit, serieUnit])
+  }, [bloques])
 
   const hayDatos = totalMetros > 0
 
@@ -266,7 +272,7 @@ export function BoardTraining({ mode }: Props) {
       b.partes.forEach((p, pi) => {
         const m = metricasParte(p, S)
         if (m.metros <= 0) return
-        const intervalo = restoTexto(p.descReps, repUnit)
+        const intervalo = restoTexto(p.descReps, b.repUnit)
         const clave = buildSimilarityKey(m.R, m.dist, p.estilo, pileta, intervalo)
         const grid: number[][] = []
         for (let s = 0; s < S; s++) {
@@ -275,27 +281,30 @@ export function BoardTraining({ mode }: Props) {
           grid.push(fila)
         }
         const hayTiempos = grid.some(f => f.some(t => t > 0))
+        const descansoSeries = restoTexto(b.descSeries, b.serieUnit)
         const set: TrainingSet = {
           id: `set-${sessionId}-${bi}-${pi}`,
           trainingSessionId: sessionId,
           swimmerId, pileta,
-          repeticiones:      m.R,
-          distancia:         m.dist,
-          series:            S,
-          estilo:            p.estilo,
-          intervaloSalida:   intervalo,
-          tipoIntervaloReps: intervalo ? p.tipoDescReps : undefined,
-          descanso:          restoTexto(b.descSeries, serieUnit),
-          tiempoPromedio:    m.prom,
-          mejorTiempo:       m.mejor,
-          peorTiempo:        m.peor,
-          variacion:         m.peor - m.mejor,
-          tiempos:           hayTiempos ? grid : undefined,
-          materiales:        p.materiales,
-          grupo:             b.partes.length > 1 ? b.id : undefined,
-          objetivoSerie:     'resistencia',
+          repeticiones:       m.R,
+          distancia:          m.dist,
+          series:             S,
+          estilo:             p.estilo,
+          intervaloSalida:    intervalo,
+          tipoIntervaloReps:  intervalo ? p.tipoDescReps : undefined,
+          descanso:           descansoSeries,
+          tipoDescansoSeries: descansoSeries ? b.tipoDescSeries : undefined,
+          orden:              bi * 100 + pi,
+          tiempoPromedio:     m.prom,
+          mejorTiempo:        m.mejor,
+          peorTiempo:         m.peor,
+          variacion:          m.peor - m.mejor,
+          tiempos:            hayTiempos ? grid : undefined,
+          materiales:         p.materiales,
+          grupo:              b.partes.length > 1 ? b.id : undefined,
+          objetivoSerie:      'resistencia',
           observacionTecnica: '',
-          claveSimilitud:    clave,
+          claveSimilitud:     clave,
         }
         addSet(set)
       })
@@ -316,7 +325,7 @@ export function BoardTraining({ mode }: Props) {
           <Check size={32} className="text-emerald-600" />
         </div>
         <p className="text-lg font-bold text-slate-900">¡Entrenamiento guardado!</p>
-        <p className="text-sm text-slate-500">{Math.round(totalMetros).toLocaleString('es')} m · ~{duracionMin} min</p>
+        <p className="text-sm text-slate-500">{Math.round(totalMetros).toLocaleString('es')} {distUnit === 'yd' ? 'yd' : 'm'} · ~{duracionMin} min</p>
       </div>
     )
   }
@@ -367,17 +376,7 @@ export function BoardTraining({ mode }: Props) {
               <Seg value={distUnit} onChange={setDistUnit} opciones={[['m', 'metros'], ['yd', 'yardas']]} />
             </div>
             <div className="flex items-center gap-2">
-              <Clock size={14} className="text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-600 w-28 shrink-0">Desc. e/ reps</span>
-              <Seg value={repUnit} onChange={setRepUnit} opciones={[['s', 'segundos'], ['min', 'minutos']]} />
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock size={14} className="text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-600 w-28 shrink-0">Desc. e/ series</span>
-              <Seg value={serieUnit} onChange={setSerieUnit} opciones={[['s', 'segundos'], ['min', 'minutos']]} />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-28 shrink-0 pl-6">Pileta</span>
+              <span className="text-xs text-slate-600 w-28 shrink-0 pl-5">Pileta</span>
               <div className="flex-1"><PoolToggle value={pileta} onChange={setPileta} /></div>
             </div>
           </div>
@@ -390,7 +389,7 @@ export function BoardTraining({ mode }: Props) {
               key={b.id}
               bloque={b}
               idx={idx}
-              distUnit={distUnit} repUnit={repUnit} serieUnit={serieUnit}
+              distUnit={distUnit}
               onUpdate={patch => updateBloque(b.id, patch)}
               onUpdateParte={(pId, patch) => updateParte(b.id, pId, patch)}
               onTiempo={(pId, s, r, v) => setTiempo(b.id, pId, s, r, v)}
@@ -414,7 +413,7 @@ export function BoardTraining({ mode }: Props) {
           <Card padding="md" className="mt-5 bg-blue-700 border-blue-700 flex items-center justify-between">
             <div>
               <p className="text-xs text-blue-200">Total</p>
-              <p className="text-2xl font-black text-white">{Math.round(totalMetros).toLocaleString('es')} m</p>
+              <p className="text-2xl font-black text-white">{Math.round(totalMetros).toLocaleString('es')} {distUnit === 'yd' ? 'yd' : 'm'}</p>
             </div>
             <p className="text-sm font-semibold text-blue-100">~{duracionMin} min</p>
           </Card>
@@ -496,7 +495,7 @@ export function BoardTraining({ mode }: Props) {
 
         <Button size="lg" fullWidth loading={saving} disabled={!hayDatos} className="mt-6"
           icon={<Check size={18} />} onClick={handleSave}>
-          Guardar entrenamiento{hayDatos ? ` (${Math.round(totalMetros).toLocaleString('es')} m)` : ''}
+          Guardar entrenamiento{hayDatos ? ` (${Math.round(totalMetros).toLocaleString('es')} ${distUnit === 'yd' ? 'yd' : 'm'})` : ''}
         </Button>
 
       </PageLayout>
@@ -526,12 +525,12 @@ function Seg<T extends string>({ value, onChange, opciones }: {
 // ─── Tarjeta de un Trabajo (con sus partes) ──────────────────────────────────────
 
 function BloqueCard({
-  bloque: b, idx, distUnit, repUnit, serieUnit,
+  bloque: b, idx, distUnit,
   onUpdate, onUpdateParte, onTiempo, onAddParte, onRemoveParte, onRemove,
 }: {
   bloque: BloqueForm
   idx: number
-  distUnit: 'm' | 'yd'; repUnit: 's' | 'min'; serieUnit: 's' | 'min'
+  distUnit: 'm' | 'yd'
   onUpdate: (patch: Partial<BloqueForm>) => void
   onUpdateParte: (pId: string, patch: Partial<ParteForm>) => void
   onTiempo: (pId: string, s: number, r: number, v: string) => void
@@ -539,10 +538,11 @@ function BloqueCard({
   onRemoveParte: (pId: string) => void
   onRemove: () => void
 }) {
-  const numLabel = (u: 'm' | 'yd' | 's' | 'min') => ({ m: 'm', yd: 'yd', s: 'seg', min: 'min' }[u])
   const S = seriesDe(b)
   const metros = metrosBloque(b)
   const variasPartes = b.partes.length > 1
+  const distLabel = distUnit === 'yd' ? 'yd' : 'm'
+  const serieLabel = b.serieUnit === 'min' ? 'min' : 'seg'
 
   return (
     <Card padding="sm" className="border-blue-100">
@@ -551,14 +551,53 @@ function BloqueCard({
         <button onClick={onRemove} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={15} /></button>
       </div>
 
-      {/* Series del trabajo (se repite todo esto N veces) */}
-      <div className="grid grid-cols-2 gap-2 mb-1">
+      {/* Series del trabajo */}
+      <div className="grid grid-cols-2 gap-2 mb-2">
         <Mini label="Series (repite el trabajo)" value={b.series} onChange={v => onUpdate({ series: v })} placeholder="2" />
-        <Mini label={`Desc. e/ series (${numLabel(serieUnit)})`} value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder="0" />
+        <Mini label={`Desc. e/ series (${serieLabel})`} value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder="0" />
+      </div>
+
+      {/* Controles de descanso entre series */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex gap-1 flex-1">
+          <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'salida' })}
+            className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.tipoDescSeries !== 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>Salida cada</button>
+          <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'fijo' })}
+            className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.tipoDescSeries === 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>Desc. fijo</button>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <button type="button" onClick={() => onUpdate({ serieUnit: 's' })}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.serieUnit === 's' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>seg</button>
+          <button type="button" onClick={() => onUpdate({ serieUnit: 'min' })}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.serieUnit === 'min' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>min</button>
+        </div>
+      </div>
+
+      {/* Unidad para descanso entre reps (aplica a todas las partes) */}
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+        <span className="text-[11px] text-slate-500 shrink-0">Desc. e/ reps:</span>
+        <div className="flex gap-1">
+          <button type="button" onClick={() => onUpdate({ repUnit: 's' })}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.repUnit === 's' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>seg</button>
+          <button type="button" onClick={() => onUpdate({ repUnit: 'min' })}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+              b.repUnit === 'min' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
+            }`}>min</button>
+        </div>
       </div>
 
       {/* Partes */}
-      <div className="flex flex-col gap-2 mt-2">
+      <div className="flex flex-col gap-2">
         {b.partes.map((p, pi) => (
           <ParteRow
             key={p.id}
@@ -566,7 +605,7 @@ function BloqueCard({
             idx={pi}
             series={S}
             mostrarTitulo={variasPartes}
-            distUnit={distUnit} repUnit={repUnit}
+            distUnit={distUnit} repUnit={b.repUnit}
             onUpdate={patch => onUpdateParte(p.id, patch)}
             onTiempo={(s, r, v) => onTiempo(p.id, s, r, v)}
             onRemove={() => onRemoveParte(p.id)}
@@ -582,7 +621,7 @@ function BloqueCard({
       {/* Resumen del trabajo */}
       {metros > 0 && (
         <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-100 text-xs">
-          <span className="font-bold text-slate-700">{metros.toLocaleString('es')} m</span>
+          <span className="font-bold text-slate-700">{metros.toLocaleString('es')} {distLabel}</span>
           <span className="text-amber-600">
             {S} {S === 1 ? 'serie' : 'series'} × ({b.partes.map(p => `${p.reps || '?'}×${p.distancia || '?'}`).join(' + ')})
           </span>
