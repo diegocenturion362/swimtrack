@@ -1,27 +1,35 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 import type {
   Swimmer, TrainingSession, TrainingSet,
   Competition, PersonalBest
 } from '../types'
-import {
-  MOCK_SWIMMERS, MOCK_SESSIONS, MOCK_SETS,
-  MOCK_COMPETITIONS, MOCK_PERSONAL_BESTS,
-} from '../data/mockData'
+import { MOCK_SWIMMERS } from '../data/mockData'
+import { supabaseConfigured } from '../lib/supabase'
+import * as db from '../lib/db'
+
+// Para suscribir el realtime una sola vez (React monta dos veces en dev)
+let realtimeIniciado = false
 
 // ─── Estado ──────────────────────────────────────────────────────────────────
 
 interface AppState {
-  // Rol activo
+  // Rol activo (vive solo en este dispositivo, no se guarda)
   currentRole:      'coach' | 'swimmer' | null
   currentSwimmerId: string | null
 
-  // Datos
+  // Carga inicial
+  loaded:  boolean
+
+  // Datos (cache en memoria; la fuente de verdad es Supabase)
   swimmers:     Swimmer[]
   sessions:     TrainingSession[]
   sets:         TrainingSet[]
   competitions: Competition[]
   personalBests: PersonalBest[]
+
+  // Carga / sincronización
+  loadAll:          () => Promise<void>
+  subscribeRealtime: () => void
 
   // Acciones – Rol
   setRole:       (role: 'coach' | 'swimmer', swimmerId?: string) => void
@@ -58,91 +66,138 @@ interface AppState {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-export const useStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      currentRole:      null,
-      currentSwimmerId: null,
+export const useStore = create<AppState>()((set, get) => ({
+  currentRole:      null,
+  currentSwimmerId: null,
+  loaded:           false,
 
-      swimmers:      MOCK_SWIMMERS,
-      sessions:      MOCK_SESSIONS,
-      sets:          MOCK_SETS,
-      competitions:  MOCK_COMPETITIONS,
-      personalBests: MOCK_PERSONAL_BESTS,
+  swimmers:      [],
+  sessions:      [],
+  sets:          [],
+  competitions:  [],
+  personalBests: [],
 
-      // Rol
-      setRole: (role, swimmerId) =>
-        set({ currentRole: role, currentSwimmerId: swimmerId ?? null }),
-      clearRole: () =>
-        set({ currentRole: null, currentSwimmerId: null }),
-
-      // Nadadores
-      addSwimmer: (s) =>
-        set(state => ({ swimmers: [...state.swimmers, s] })),
-      updateSwimmer: (id, data) =>
-        set(state => ({
-          swimmers: state.swimmers.map(sw => sw.id === id ? { ...sw, ...data } : sw),
-        })),
-
-      // Sesiones
-      addSession: (s) =>
-        set(state => ({ sessions: [...state.sessions, s] })),
-      updateSession: (id, data) =>
-        set(state => ({
-          sessions: state.sessions.map(ss => ss.id === id ? { ...ss, ...data } : ss),
-        })),
-      deleteSession: (id) =>
-        set(state => ({
-          sessions: state.sessions.filter(ss => ss.id !== id),
-          sets:     state.sets.filter(s => s.trainingSessionId !== id),
-        })),
-
-      // Series
-      addSet: (s) =>
-        set(state => ({ sets: [...state.sets, s] })),
-      deleteSet: (id) =>
-        set(state => ({ sets: state.sets.filter(s => s.id !== id) })),
-
-      // Competencias
-      addCompetition: (c) =>
-        set(state => ({ competitions: [...state.competitions, c] })),
-      updateCompetition: (id, data) =>
-        set(state => ({
-          competitions: state.competitions.map(c => c.id === id ? { ...c, ...data } : c),
-        })),
-      deleteCompetition: (id) =>
-        set(state => ({ competitions: state.competitions.filter(c => c.id !== id) })),
-
-      // Marcas
-      addPersonalBest: (pb) =>
-        set(state => ({ personalBests: [...state.personalBests, pb] })),
-
-      // Helpers
-      getSwimmerSessions: (swimmerId) =>
-        get().sessions.filter(s => s.swimmerId === swimmerId)
-          .sort((a, b) => b.fecha.localeCompare(a.fecha)),
-      getSwimmerSets: (swimmerId) =>
-        get().sets.filter(s => s.swimmerId === swimmerId),
-      getSwimmerCompetitions: (swimmerId) =>
-        get().competitions.filter(c => c.swimmerId === swimmerId)
-          .sort((a, b) => b.fecha.localeCompare(a.fecha)),
-      getSwimmerBests: (swimmerId) =>
-        get().personalBests.filter(pb => pb.swimmerId === swimmerId)
-          .sort((a, b) => a.tiempo - b.tiempo),
-      getSessionSets: (sessionId) =>
-        get().sets.filter(s => s.trainingSessionId === sessionId),
-    }),
-    {
-      name:    'swimtrack-storage-v3',
-      storage: createJSONStorage(() => localStorage),
-      // No persistir el rol entre sesiones (cada apertura pide selección)
-      partialize: (state) => ({
-        swimmers:      state.swimmers,
-        sessions:      state.sessions,
-        sets:          state.sets,
-        competitions:  state.competitions,
-        personalBests: state.personalBests,
-      }),
+  // ── Carga / sync ──────────────────────────────────────────────────────────
+  loadAll: async () => {
+    if (!supabaseConfigured) {
+      // Sin Supabase configurado: funciona en memoria con el nadador de ejemplo.
+      set({ swimmers: MOCK_SWIMMERS, sessions: [], sets: [], competitions: [], personalBests: [], loaded: true })
+      return
     }
-  )
-)
+    try {
+      const data = await db.fetchAll()
+      set({ ...data, loaded: true })
+    } catch (e) {
+      console.error('Error cargando datos de Supabase', e)
+      set({ loaded: true })   // que la app no quede colgada en "cargando"
+    }
+  },
+
+  subscribeRealtime: () => {
+    if (!supabaseConfigured || realtimeIniciado) return
+    realtimeIniciado = true
+    db.subscribeChanges(() => { get().loadAll() })
+  },
+
+  // ── Rol ──────────────────────────────────────────────────────────────────
+  setRole: (role, swimmerId) =>
+    set({ currentRole: role, currentSwimmerId: swimmerId ?? null }),
+  clearRole: () =>
+    set({ currentRole: null, currentSwimmerId: null }),
+
+  // ── Nadadores ────────────────────────────────────────────────────────────
+  addSwimmer: (s) => {
+    set(state => ({ swimmers: [...state.swimmers, s] }))
+    if (supabaseConfigured) db.upsertSwimmer(s)
+  },
+  updateSwimmer: (id, data) => {
+    let actualizado: Swimmer | undefined
+    set(state => {
+      const swimmers = state.swimmers.map(sw => {
+        if (sw.id !== id) return sw
+        actualizado = { ...sw, ...data }
+        return actualizado
+      })
+      return { swimmers }
+    })
+    if (supabaseConfigured && actualizado) db.upsertSwimmer(actualizado)
+  },
+
+  // ── Sesiones ─────────────────────────────────────────────────────────────
+  addSession: (s) => {
+    set(state => ({ sessions: [...state.sessions, s] }))
+    if (supabaseConfigured) db.upsertSession(s)
+  },
+  updateSession: (id, data) => {
+    let actualizado: TrainingSession | undefined
+    set(state => {
+      const sessions = state.sessions.map(ss => {
+        if (ss.id !== id) return ss
+        actualizado = { ...ss, ...data }
+        return actualizado
+      })
+      return { sessions }
+    })
+    if (supabaseConfigured && actualizado) db.upsertSession(actualizado)
+  },
+  deleteSession: (id) => {
+    set(state => ({
+      sessions: state.sessions.filter(ss => ss.id !== id),
+      sets:     state.sets.filter(s => s.trainingSessionId !== id),
+    }))
+    if (supabaseConfigured) db.deleteSessionDb(id)
+  },
+
+  // ── Series ───────────────────────────────────────────────────────────────
+  addSet: (s) => {
+    set(state => ({ sets: [...state.sets, s] }))
+    if (supabaseConfigured) db.upsertSet(s)
+  },
+  deleteSet: (id) => {
+    set(state => ({ sets: state.sets.filter(s => s.id !== id) }))
+    if (supabaseConfigured) db.deleteSetDb(id)
+  },
+
+  // ── Competencias ─────────────────────────────────────────────────────────
+  addCompetition: (c) => {
+    set(state => ({ competitions: [...state.competitions, c] }))
+    if (supabaseConfigured) db.upsertCompetition(c)
+  },
+  updateCompetition: (id, data) => {
+    let actualizado: Competition | undefined
+    set(state => {
+      const competitions = state.competitions.map(c => {
+        if (c.id !== id) return c
+        actualizado = { ...c, ...data }
+        return actualizado
+      })
+      return { competitions }
+    })
+    if (supabaseConfigured && actualizado) db.upsertCompetition(actualizado)
+  },
+  deleteCompetition: (id) => {
+    set(state => ({ competitions: state.competitions.filter(c => c.id !== id) }))
+    if (supabaseConfigured) db.deleteCompetitionDb(id)
+  },
+
+  // ── Marcas ───────────────────────────────────────────────────────────────
+  addPersonalBest: (pb) => {
+    set(state => ({ personalBests: [...state.personalBests, pb] }))
+    if (supabaseConfigured) db.upsertPersonalBest(pb)
+  },
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  getSwimmerSessions: (swimmerId) =>
+    get().sessions.filter(s => s.swimmerId === swimmerId)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha)),
+  getSwimmerSets: (swimmerId) =>
+    get().sets.filter(s => s.swimmerId === swimmerId),
+  getSwimmerCompetitions: (swimmerId) =>
+    get().competitions.filter(c => c.swimmerId === swimmerId)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha)),
+  getSwimmerBests: (swimmerId) =>
+    get().personalBests.filter(pb => pb.swimmerId === swimmerId)
+      .sort((a, b) => a.tiempo - b.tiempo),
+  getSessionSets: (sessionId) =>
+    get().sets.filter(s => s.trainingSessionId === sessionId),
+}))

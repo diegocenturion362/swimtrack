@@ -4,6 +4,7 @@ import { useStore } from './store/useStore'
 
 // Layout
 import { BottomNav } from './components/layout/BottomNav'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Páginas públicas
 import { RoleSelector } from './pages/RoleSelector'
@@ -55,9 +56,28 @@ function ScrollTop() {
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 export function App() {
+  const loaded            = useStore(s => s.loaded)
+  const loadAll           = useStore(s => s.loadAll)
+  const subscribeRealtime = useStore(s => s.subscribeRealtime)
+
+  useEffect(() => {
+    loadAll()
+    subscribeRealtime()
+  }, [loadAll, subscribeRealtime])
+
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-blue-950 flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-blue-200 text-sm">Cargando SwimTrack…</p>
+      </div>
+    )
+  }
+
   return (
     <BrowserRouter>
       <ScrollTop />
+      <ErrorBoundary>
       <div className="bg-slate-50 min-h-screen">
         <Routes>
           {/* Selector de rol */}
@@ -92,6 +112,7 @@ export function App() {
         </Routes>
         <BottomNav />
       </div>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
