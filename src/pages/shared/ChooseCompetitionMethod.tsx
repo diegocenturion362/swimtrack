@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { FileText, LayoutGrid } from 'lucide-react'
+import { FileText, LayoutGrid, Camera } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 
@@ -19,6 +19,12 @@ export function ChooseCompetitionMethod({ mode }: Props) {
       titulo: 'Pegar texto',
       desc:   'Pegá el resultado copiado de Meet Mobile o escribilo a mano. La app detecta torneo, prueba y tiempo automáticamente.',
       to:     `${base}/competencia-importar`,
+    },
+    {
+      icon:   <Camera size={36} strokeWidth={1.5} className="text-green-600" />,
+      titulo: 'Foto / Screenshot',
+      desc:   'Sacá una captura de pantalla del Meet Mobile y la app extrae el torneo, prueba, tiempo y parciales automáticamente.',
+      to:     `${base}/competencia-foto`,
     },
     {
       icon:   <LayoutGrid size={36} strokeWidth={1.5} className="text-purple-600" />,

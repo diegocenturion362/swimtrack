@@ -34,7 +34,8 @@ import { ImportCompetition }      from './pages/shared/ImportCompetition'
 import { BoardTraining }          from './pages/shared/BoardTraining'
 import { BoardCompetition }       from './pages/shared/BoardCompetition'
 import { ChooseTrainingMethod }   from './pages/shared/ChooseTrainingMethod'
-import { ChooseCompetitionMethod } from './pages/shared/ChooseCompetitionMethod'
+import { ChooseCompetitionMethod }  from './pages/shared/ChooseCompetitionMethod'
+import { ImportCompetitionImage }   from './pages/shared/ImportCompetitionImage'
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,7 @@ export function App() {
             <Route path="/coach/competencia"         element={<RequireCoach><ChooseCompetitionMethod mode="coach" /></RequireCoach>} />
             <Route path="/coach/competencia-importar" element={<RequireCoach><ImportCompetition mode="coach" /></RequireCoach>} />
             <Route path="/coach/competencia-tablero"  element={<RequireCoach><BoardCompetition mode="coach" /></RequireCoach>} />
+            <Route path="/coach/competencia-foto"     element={<RequireCoach><ImportCompetitionImage mode="coach" /></RequireCoach>} />
             <Route path="/coach/similares"           element={<RequireCoach><SimilarSessions /></RequireCoach>} />
             <Route path="/coach/marcas"              element={<RequireCoach><CoachMarks /></RequireCoach>} />
 
@@ -131,6 +133,7 @@ export function App() {
             <Route path="/nadador/:id/competencia"             element={<RequireSwimmer><ChooseCompetitionMethod mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-importar"    element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-tablero"     element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/competencia-foto"        element={<RequireSwimmer><ImportCompetitionImage mode="swimmer" /></RequireSwimmer>} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
