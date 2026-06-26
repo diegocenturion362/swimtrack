@@ -216,30 +216,64 @@ export function parseMeetMobile(texto: string): ParsedCompetition {
     if (!fecha) { const f = parseFechaEspanol(l); if (f) { fecha = f; break } }
   }
 
-  // Puesto en serie: número en la línea siguiente a "HEAT PLACE"
+  // Puesto en serie: número en la línea con "HEAT PLACE" o en la siguiente
+  // Formato A: "HEAT PLACE" sola → siguiente línea es "1"
+  // Formato B: "HEAT PLACE\tHEAT\tLANE" → siguiente línea es "1\t2\t2"
   let puesto = 0
-  const hpIdx = lineas.findIndex(l => /^HEAT\s*PLACE$/i.test(l))
+  const hpIdx = lineas.findIndex(l => /^HEAT\s*PLACE/i.test(l))
   if (hpIdx >= 0) {
     for (let i = hpIdx + 1; i < Math.min(hpIdx + 3, lineas.length); i++) {
-      if (/^\d+$/.test(lineas[i])) { puesto = parseInt(lineas[i]); break }
+      const m = lineas[i].match(/\d+/)
+      if (m) { puesto = parseInt(m[0]); break }
     }
   }
 
-  // Valores numéricos después de "Total": pares (parcial, acumulado) + total final
-  const totalIdx = lineas.findIndex(l => /^total$/i.test(l))
-  const numValues: number[] = []
-  if (totalIdx >= 0) {
-    for (let i = totalIdx + 1; i < lineas.length; i++) {
-      if (/^\d+[.,]\d+$/.test(lineas[i])) numValues.push(parseFloat(lineas[i].replace(',', '.')))
+  // Tiempo final: busca la línea que empieza con "Total"
+  // Formato A: "Total" sola → números en líneas siguientes (el último es el total)
+  // Formato B: "Total\t\t56.18" → número en la misma línea
+  let tiempoFinal = 0
+  const totalLineIdx = lineas.findIndex(l => /^total\b/i.test(l))
+  if (totalLineIdx >= 0) {
+    const totalLine = lineas[totalLineIdx]
+    const inline = totalLine.match(/(\d+[.,]\d+)\s*$/)
+    if (inline) {
+      // Formato B: tiempo embebido en la misma línea
+      tiempoFinal = parseFloat(inline[1].replace(',', '.'))
+    } else {
+      // Formato A: buscar en las líneas siguientes
+      const nums: number[] = []
+      for (let i = totalLineIdx + 1; i < lineas.length; i++) {
+        if (/^\d+[.,]\d+$/.test(lineas[i])) nums.push(parseFloat(lineas[i].replace(',', '.')))
+      }
+      if (nums.length > 0) tiempoFinal = nums[nums.length - 1]
     }
   }
 
-  const tiempoFinal = numValues.length > 0 ? numValues[numValues.length - 1] : 0
-
-  // Tiempos acumulados (índices impares): 25m→[1], 50m→[3], 75m→[5]...
+  // Splits acumulados
   const parciales: number[] = []
-  for (let i = 1; i < numValues.length - 1; i += 2) {
-    if (numValues[i] < tiempoFinal) parciales.push(numValues[i])
+
+  // Formato B: "25 Free\t\t12.46" seguido de línea con el acumulado
+  for (let i = 0; i < lineas.length - 1; i++) {
+    const l = lineas[i]
+    if (/\b(free|back|breast|fly|medley)\b/i.test(l) && /\t[\d.,]+$/.test(l)) {
+      const nextLine = lineas[i + 1]
+      if (/^\d+[.,]\d+$/.test(nextLine)) {
+        const cum = parseFloat(nextLine.replace(',', '.'))
+        if (cum > 0 && cum < tiempoFinal) parciales.push(cum)
+      }
+    }
+  }
+
+  // Formato A: todos los valores después de "Total" en líneas separadas
+  if (parciales.length === 0 && totalLineIdx >= 0) {
+    const nums: number[] = []
+    for (let i = totalLineIdx + 1; i < lineas.length; i++) {
+      if (/^\d+[.,]\d+$/.test(lineas[i])) nums.push(parseFloat(lineas[i].replace(',', '.')))
+    }
+    // Valores acumulados en índices impares (0-base): 25m→[1], 50m→[3]...
+    for (let i = 1; i < nums.length - 1; i += 2) {
+      if (nums[i] < tiempoFinal) parciales.push(nums[i])
+    }
   }
 
   return {
