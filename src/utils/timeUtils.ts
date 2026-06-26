@@ -1,12 +1,6 @@
-// Formatea segundos a "M:SS.x" o "SS.x"
+// Formatea segundos a  28"32  o  1'23"23
 export function formatTime(seconds: number): string {
-  if (seconds <= 0) return '—'
-  if (seconds < 60) {
-    return seconds.toFixed(1) + 's'
-  }
-  const m = Math.floor(seconds / 60)
-  const s = (seconds % 60).toFixed(1).padStart(4, '0')
-  return `${m}:${s}`
+  return formatRepTime(seconds) || '—'
 }
 
 // Formatea "M:SS.x" largo para marcas en competencia
