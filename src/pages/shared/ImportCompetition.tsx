@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { Field, Input, Select, PoolToggle } from '../../components/ui/FormField'
 import { useStore } from '../../store/useStore'
 import { parseCompetition, parseMeetMobile, isMeetMobile, parseTiempo, tiempoATexto } from '../../utils/parseCompetition'
+import { formatearParciales } from '../../utils/timeUtils'
 import type { Competition, PoolSize } from '../../types'
 
 const EJEMPLO = `Torneo Nacional
@@ -176,13 +177,11 @@ export function ImportCompetition({ mode }: Props) {
                 )}
               </div>
               {parsed.parciales.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                  <Timer size={13} className="text-amber-600" />
-                  {parsed.parcialesTexto.map((p, i) => (
-                    <span key={i} className="text-[11px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                      {p}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-1.5 mt-3">
+                  <Timer size={13} className="text-amber-600 shrink-0" />
+                  <p className="text-[11px] font-semibold text-amber-700 leading-relaxed">
+                    {formatearParciales(parsed.parciales, parsed.tiempoFinal)}
+                  </p>
                 </div>
               )}
             </Card>

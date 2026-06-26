@@ -147,6 +147,26 @@ export function relativeDate(iso: string): string {
   return `Hace ${Math.floor(days / 365)} año/s`
 }
 
+// Formatea parciales de competencia como "tramo (acumulado) ; tramo (acumulado)"
+// Detecta automáticamente si el array son tiempos acumulados o tiempos por tramo.
+export function formatearParciales(parciales: number[], tiempoFinal: number): string {
+  if (!parciales.length) return ''
+  const sumP = parseFloat(parciales.reduce((a, b) => a + b, 0).toFixed(2))
+  const isLapTimes = tiempoFinal > 0 && Math.abs(sumP - tiempoFinal) < 1
+  let cums: number[]
+  if (isLapTimes) {
+    let acc = 0
+    cums = parciales.map(lap => { acc = parseFloat((acc + lap).toFixed(2)); return acc })
+  } else {
+    cums = [...parciales]
+    if (tiempoFinal > 0 && parciales[parciales.length - 1] < tiempoFinal - 0.01) cums.push(tiempoFinal)
+  }
+  return cums.map((c, i) => {
+    const lap = i === 0 ? c : parseFloat((c - cums[i - 1]).toFixed(2))
+    return `${formatRepTime(lap)} (${formatRepTime(c)})`
+  }).join(' ; ')
+}
+
 // Semanas del año para agrupar por semana
 export function weekKey(iso: string): string {
   const d   = new Date(iso)

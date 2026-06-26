@@ -5,7 +5,7 @@ import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { useStore } from '../../store/useStore'
-import { formatTime, formatDate } from '../../utils/timeUtils'
+import { formatTime, formatDate, formatearParciales } from '../../utils/timeUtils'
 import { tiempoATexto } from '../../utils/parseCompetition'
 import type { Competition } from '../../types'
 
@@ -343,13 +343,11 @@ function CompCard({
           {c.parciales.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Parciales</p>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Timer size={13} className="text-slate-400" />
-                {c.parciales.map((p, i) => (
-                  <span key={i} className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                    {tiempoATexto(p)}
-                  </span>
-                ))}
+              <div className="flex items-center gap-1.5">
+                <Timer size={13} className="text-slate-400 shrink-0" />
+                <p className="text-[11px] font-semibold text-slate-700 leading-relaxed">
+                  {formatearParciales(c.parciales, c.tiempoFinal)}
+                </p>
               </div>
             </div>
           )}

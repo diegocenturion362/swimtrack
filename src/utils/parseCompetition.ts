@@ -259,7 +259,7 @@ export function parseMeetMobile(texto: string): ParsedCompetition {
       const nextLine = lineas[i + 1]
       if (/^\d+[.,]\d+$/.test(nextLine)) {
         const cum = parseFloat(nextLine.replace(',', '.'))
-        if (cum > 0 && cum < tiempoFinal) parciales.push(cum)
+        if (cum > 0 && cum <= tiempoFinal) parciales.push(cum)
       }
     }
   }
@@ -272,7 +272,7 @@ export function parseMeetMobile(texto: string): ParsedCompetition {
     }
     // Valores acumulados en índices impares (0-base): 25m→[1], 50m→[3]...
     for (let i = 1; i < nums.length - 1; i += 2) {
-      if (nums[i] < tiempoFinal) parciales.push(nums[i])
+      if (nums[i] <= tiempoFinal) parciales.push(nums[i])
     }
   }
 
