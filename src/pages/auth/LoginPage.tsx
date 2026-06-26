@@ -16,20 +16,21 @@ export function LoginPage() {
   const [error,    setError]    = useState('')
 
   // Redirigir si ya tiene sesión
+  const loaded = useStore(s => s.loaded)
   useEffect(() => {
+    if (!loaded) return
     if (userRole === 'swimmer' && authUserId) navigate(`/nadador/${authUserId}`, { replace: true })
-    else if (userRole === 'coach') navigate('/coach', { replace: true })
-  }, [userRole, authUserId, navigate])
+    else if (userRole === 'coach')            navigate('/coach', { replace: true })
+    else if (authUserId && !userRole)         navigate('/registro', { replace: true })
+  }, [userRole, authUserId, loaded, navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     const { error: err } = await signIn(email, password)
-    if (err) {
-      setError(traducirError(err.message))
-      setLoading(false)
-    }
+    setLoading(false)
+    if (err) setError(traducirError(err.message))
     // Si no hay error, onAuthStateChange dispara loadAsUser → el useEffect de arriba redirige
   }
 
