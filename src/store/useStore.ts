@@ -34,7 +34,7 @@ interface AppState {
 
   // Auth
   initAuth:        () => Promise<void>
-  signOut:         () => Promise<void>
+  signOut:         () => void
   linkSwimmer:     (codigo: string) => Promise<{ nombre?: string; error?: string }>
 
   // Rol legacy (modo mock)
@@ -119,8 +119,9 @@ export const useStore = create<AppState>()((set, get) => ({
     await loadAsUser(session.user.id, set, get)
   },
 
-  signOut: async () => {
-    if (supabaseConfigured) await db.signOut()
+  signOut: () => {
+    // Limpiar estado de forma sincrónica para que los guards redirijan de inmediato
+    const needsApiCall = supabaseConfigured && get().authUserId !== null
     realtimeIniciado  = false
     authListenerSetup = false
     set({
@@ -128,6 +129,8 @@ export const useStore = create<AppState>()((set, get) => ({
       currentRole: null, currentSwimmerId: null,
       swimmers: [], sessions: [], sets: [], competitions: [], personalBests: [],
     })
+    // Fire-and-forget: no bloquear la UI esperando la respuesta de Supabase
+    if (needsApiCall) db.signOut().catch(() => {})
   },
 
   linkSwimmer: async (codigo) => {

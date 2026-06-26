@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { signUp, upsertSwimmer, upsertCoach } from '../../lib/db'
 import { useStore } from '../../store/useStore'
@@ -9,6 +10,30 @@ import { STROKES, strokeLabel } from '../../types'
 type Rol   = 'swimmer' | 'coach'
 type Etapa = 'rol' | 'perfil' | 'exito'
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function calcularCategoria(fechaNac: string): string {
+  if (!fechaNac) return ''
+  const edadAlCierreAnio = new Date().getFullYear() - new Date(fechaNac).getFullYear()
+  if (edadAlCierreAnio <= 12) return 'Menores'
+  if (edadAlCierreAnio <= 14) return 'Cadetes'
+  if (edadAlCierreAnio <= 16) return 'Juveniles A'
+  if (edadAlCierreAnio <= 18) return 'Juveniles B'
+  return 'Mayores'
+}
+
+function calcularEdad(fechaNac: string): number {
+  if (!fechaNac) return 0
+  const hoy = new Date()
+  const nac = new Date(fechaNac)
+  let edad = hoy.getFullYear() - nac.getFullYear()
+  const m = hoy.getMonth() - nac.getMonth()
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--
+  return edad
+}
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
 export function RegisterPage() {
   const navigate  = useNavigate()
   const { initAuth, authUserId } = useStore(s => ({ initAuth: s.initAuth, authUserId: s.authUserId }))
@@ -17,34 +42,39 @@ export function RegisterPage() {
   const [rol,      setRol]      = useState<Rol>('swimmer')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
-  const [codigo,   setCodigo]   = useState('')   // solo para nadadores
+  const [codigo,   setCodigo]   = useState('')
 
   // ── Campos comunes ────────────────────────────────────────────────────────
   const [email,     setEmail]     = useState('')
   const [password,  setPassword]  = useState('')
   const [password2, setPassword2] = useState('')
+  const [showPass,  setShowPass]  = useState(false)
+  const [showPass2, setShowPass2] = useState(false)
   const [nombre,    setNombre]    = useState('')
 
   // ── Coach ─────────────────────────────────────────────────────────────────
   const [clubEquipo, setClubEquipo] = useState('')
 
   // ── Nadador ───────────────────────────────────────────────────────────────
-  const [fechaNac,   setFechaNac]   = useState('')
-  const [sexo,       setSexo]       = useState<'masculino' | 'femenino'>('masculino')
-  const [categoria,  setCategoria]  = useState('')
+  const [fechaNac,     setFechaNac]     = useState('')
+  const [sexo,         setSexo]         = useState<'masculino' | 'femenino'>('masculino')
   const [especialidad, setEspecialidad] = useState<Stroke>('libre')
-  const [prueba,     setPrueba]     = useState('')
-  const [pileta,     setPileta]     = useState<PoolSize>('25m')
-  const [marcaMin,   setMarcaMin]   = useState('')
-  const [marcaSeg,   setMarcaSeg]   = useState('')
-  const [objetivo,   setObjetivo]   = useState('')
+  const [prueba,       setPrueba]       = useState('')
+  const [pileta,       setPileta]       = useState<PoolSize>('25m')
+  const [marcaMin,     setMarcaMin]     = useState('')
+  const [marcaSeg,     setMarcaSeg]     = useState('')
+  const [marcaCs,      setMarcaCs]      = useState('')
+  const [objetivo,     setObjetivo]     = useState('')
+
+  // ── Validación contraseñas ────────────────────────────────────────────────
+  const passNoCoincide = password2 !== '' && password !== password2
 
   async function handleRegistrar(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
     if (password !== password2) { setError('Las contraseñas no coinciden.'); return }
     if (password.length < 6)   { setError('La contraseña debe tener al menos 6 caracteres.'); return }
 
+    setError('')
     setLoading(true)
 
     const { data: authData, error: authErr } = await signUp(email, password)
@@ -54,7 +84,6 @@ export function RegisterPage() {
     if (!uid) { setError('No se pudo crear la cuenta. Intentá de nuevo.'); setLoading(false); return }
 
     if (!authData.session) {
-      // Email confirmation required
       setLoading(false)
       setEtapa('exito')
       return
@@ -64,14 +93,18 @@ export function RegisterPage() {
       const coach: Coach = { id: uid, nombre, clubEquipo }
       await upsertCoach(coach)
     } else {
-      const marcaObjetivo = (parseInt(marcaMin || '0') * 60) + parseFloat(marcaSeg || '0')
+      const marcaObjetivo =
+        (parseInt(marcaMin || '0') * 60) +
+        parseFloat(marcaSeg || '0') +
+        parseFloat(marcaCs  || '0') / 100
+
       const swimmer: Swimmer = {
         id:                uid,
         nombre,
-        edad:              0,
+        edad:              calcularEdad(fechaNac),
         fechaNacimiento:   fechaNac || undefined,
         sexo,
-        categoria,
+        categoria:         calcularCategoria(fechaNac),
         especialidad,
         pruebaPrincipal:   prueba,
         piletaHabitual:    pileta,
@@ -81,7 +114,6 @@ export function RegisterPage() {
       }
       await upsertSwimmer(swimmer)
 
-      // Leer el código generado por el trigger
       const { data: row } = await supabase
         .from('swimmers')
         .select('codigo_acceso')
@@ -103,25 +135,13 @@ export function RegisterPage() {
         <h2 className="text-lg font-bold text-slate-800 mb-1">¿Cómo vas a usar SwimTrack?</h2>
         <p className="text-xs text-slate-500 mb-5">Podés cambiarlo más tarde desde tu perfil.</p>
         <div className="flex flex-col gap-3 mb-6">
-          <BtnRol
-            activo={rol === 'swimmer'}
-            onClick={() => setRol('swimmer')}
-            emoji="🏊"
-            titulo="Soy nadador/a"
-            desc="Registrá tus entrenamientos y seguí tu evolución."
-          />
-          <BtnRol
-            activo={rol === 'coach'}
-            onClick={() => setRol('coach')}
-            emoji="📋"
-            titulo="Soy entrenador/a"
-            desc="Gestioná tu equipo y cargá entrenamientos para tus nadadores."
-          />
+          <BtnRol activo={rol === 'swimmer'} onClick={() => setRol('swimmer')}
+            emoji="🏊" titulo="Soy nadador/a" desc="Registrá tus entrenamientos y seguí tu evolución." />
+          <BtnRol activo={rol === 'coach'}   onClick={() => setRol('coach')}
+            emoji="📋" titulo="Soy entrenador/a" desc="Gestioná tu equipo y cargá entrenamientos." />
         </div>
-        <button
-          onClick={() => setEtapa('perfil')}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 text-sm transition-colors"
-        >
+        <button onClick={() => setEtapa('perfil')}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 text-sm transition-colors">
           Continuar
         </button>
         <p className="text-center text-xs text-slate-500 pt-3">
@@ -132,7 +152,7 @@ export function RegisterPage() {
     )
   }
 
-  // ── Pantalla: éxito / código ──────────────────────────────────────────────
+  // ── Pantalla: éxito ───────────────────────────────────────────────────────
 
   if (etapa === 'exito') {
     const needsConfirm = rol === 'swimmer' && !codigo && !authUserId
@@ -157,9 +177,7 @@ export function RegisterPage() {
       <Contenedor>
         <div className="text-center">
           <div className="text-4xl mb-4">{rol === 'swimmer' ? '🏊' : '📋'}</div>
-          <h2 className="text-lg font-bold text-slate-800 mb-2">
-            ¡Bienvenido/a, {nombre}!
-          </h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-2">¡Bienvenido/a, {nombre}!</h2>
           {rol === 'swimmer' && codigo && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5">
               <p className="text-xs text-blue-700 font-semibold mb-1">TU CÓDIGO DE ACCESO</p>
@@ -201,7 +219,6 @@ export function RegisterPage() {
             {rol === 'swimmer' ? 'Crear cuenta de nadador/a' : 'Crear cuenta de entrenador/a'}
           </h2>
 
-          {/* ── Campos comunes ── */}
           <Campo label="Nombre completo">
             <input type="text" required value={nombre} onChange={e => setNombre(e.target.value)}
               className={INPUT} placeholder="Juan Pérez" />
@@ -219,6 +236,11 @@ export function RegisterPage() {
               <Campo label="Fecha de nacimiento">
                 <input type="date" required value={fechaNac} onChange={e => setFechaNac(e.target.value)}
                   className={INPUT} />
+                {fechaNac && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    {calcularEdad(fechaNac)} años · Categoría: {calcularCategoria(fechaNac)}
+                  </p>
+                )}
               </Campo>
 
               <Campo label="Sexo">
@@ -226,11 +248,6 @@ export function RegisterPage() {
                   <option value="masculino">Masculino</option>
                   <option value="femenino">Femenino</option>
                 </select>
-              </Campo>
-
-              <Campo label="Categoría" hint="ej: Juvenil A, Mayores">
-                <input type="text" required value={categoria} onChange={e => setCategoria(e.target.value)}
-                  className={INPUT} placeholder="Juvenil A" />
               </Campo>
 
               <Campo label="Especialidad (estilo)">
@@ -251,12 +268,28 @@ export function RegisterPage() {
                 </select>
               </Campo>
 
-              <Campo label="Marca objetivo (mm:ss)" hint="Opcional">
-                <div className="flex gap-2">
-                  <input type="number" min="0" max="59" value={marcaMin} onChange={e => setMarcaMin(e.target.value)}
-                    className={INPUT + ' w-1/2'} placeholder="min" />
-                  <input type="number" min="0" max="59.99" step="0.01" value={marcaSeg} onChange={e => setMarcaSeg(e.target.value)}
-                    className={INPUT + ' w-1/2'} placeholder="seg" />
+              <Campo label="Marca objetivo" hint="Opcional">
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <input type="number" min="0" max="99" value={marcaMin}
+                      onChange={e => setMarcaMin(e.target.value)}
+                      className={INPUT + ' text-center'} placeholder="min" />
+                    <p className="text-[10px] text-slate-400 text-center mt-0.5">min</p>
+                  </div>
+                  <span className="text-slate-400 font-bold mb-4">:</span>
+                  <div className="flex-1">
+                    <input type="number" min="0" max="59" value={marcaSeg}
+                      onChange={e => setMarcaSeg(e.target.value)}
+                      className={INPUT + ' text-center'} placeholder="seg" />
+                    <p className="text-[10px] text-slate-400 text-center mt-0.5">seg</p>
+                  </div>
+                  <span className="text-slate-400 font-bold mb-4">.</span>
+                  <div className="flex-1">
+                    <input type="number" min="0" max="99" value={marcaCs}
+                      onChange={e => setMarcaCs(e.target.value)}
+                      className={INPUT + ' text-center'} placeholder="cs" />
+                    <p className="text-[10px] text-slate-400 text-center mt-0.5">cs</p>
+                  </div>
                 </div>
               </Campo>
 
@@ -275,13 +308,33 @@ export function RegisterPage() {
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   className={INPUT} autoComplete="email" placeholder="tu@email.com" />
               </Campo>
+
               <Campo label="Contraseña">
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                  className={INPUT} autoComplete="new-password" placeholder="Mín. 6 caracteres" />
+                <div className="relative">
+                  <input type={showPass ? 'text' : 'password'} required value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className={INPUT + ' pr-10'} autoComplete="new-password" placeholder="Mín. 6 caracteres" />
+                  <button type="button" tabIndex={-1} onClick={() => setShowPass(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </Campo>
+
               <Campo label="Repetir contraseña">
-                <input type="password" required value={password2} onChange={e => setPassword2(e.target.value)}
-                  className={INPUT} autoComplete="new-password" placeholder="••••••••" />
+                <div className="relative">
+                  <input type={showPass2 ? 'text' : 'password'} required value={password2}
+                    onChange={e => setPassword2(e.target.value)}
+                    className={INPUT + ' pr-10 ' + (passNoCoincide ? 'border-red-400 ring-1 ring-red-300' : '')}
+                    autoComplete="new-password" placeholder="••••••••" />
+                  <button type="button" tabIndex={-1} onClick={() => setShowPass2(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showPass2 ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {passNoCoincide && (
+                  <p className="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>
+                )}
               </Campo>
             </div>
           </div>
@@ -290,11 +343,8 @@ export function RegisterPage() {
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 text-sm transition-colors disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading || passNoCoincide}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 text-sm transition-colors disabled:opacity-60">
             {loading ? 'Creando cuenta…' : 'Crear cuenta'}
           </button>
         </form>
@@ -332,13 +382,10 @@ function BtnRol({ activo, onClick, emoji, titulo, desc }: {
   activo: boolean; onClick: () => void; emoji: string; titulo: string; desc: string
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <button type="button" onClick={onClick}
       className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
         activo ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
-      }`}
-    >
+      }`}>
       <div className="flex items-center gap-3">
         <span className="text-2xl">{emoji}</span>
         <div>
@@ -352,7 +399,7 @@ function BtnRol({ activo, onClick, emoji, titulo, desc }: {
 
 function traducirError(msg: string): string {
   if (msg.includes('already registered')) return 'Ya existe una cuenta con ese email.'
-  if (msg.includes('weak_password'))      return 'La contraseña es muy débil. Usá al menos 6 caracteres.'
+  if (msg.includes('weak_password'))      return 'La contraseña es muy débil.'
   if (msg.includes('invalid email'))      return 'El email no es válido.'
   return msg
 }

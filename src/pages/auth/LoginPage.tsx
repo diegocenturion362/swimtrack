@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { signIn } from '../../lib/db'
 import { useStore } from '../../store/useStore'
 
 export function LoginPage() {
   const navigate  = useNavigate()
-  const { userRole, authUserId } = useStore(s => ({
-    userRole:    s.userRole,
-    authUserId:  s.authUserId,
+  const { userRole, authUserId, loaded } = useStore(s => ({
+    userRole:   s.userRole,
+    authUserId: s.authUserId,
+    loaded:     s.loaded,
   }))
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
 
-  // Redirigir si ya tiene sesión
-  const loaded = useStore(s => s.loaded)
   useEffect(() => {
     if (!loaded) return
     if (userRole === 'swimmer' && authUserId) navigate(`/nadador/${authUserId}`, { replace: true })
@@ -31,13 +32,11 @@ export function LoginPage() {
     const { error: err } = await signIn(email, password)
     setLoading(false)
     if (err) setError(traducirError(err.message))
-    // Si no hay error, onAuthStateChange dispara loadAsUser → el useEffect de arriba redirige
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-blue-950 flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo / título */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-3xl">🏊</span>
@@ -64,15 +63,25 @@ export function LoginPage() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPass ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                tabIndex={-1}
+              >
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {error && (

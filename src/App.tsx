@@ -18,7 +18,6 @@ import { RoleSelector } from './pages/RoleSelector'
 import { CoachDashboard }   from './pages/coach/CoachDashboard'
 import { SwimmerList }       from './pages/coach/SwimmerList'
 import { SwimmerProfile }    from './pages/coach/SwimmerProfile'
-import { AddTraining }       from './pages/coach/AddTraining'
 import { AddCompetition }    from './pages/coach/AddCompetition'
 import { SimilarSessions }   from './pages/coach/SimilarSessions'
 import { CoachMarks }        from './pages/coach/CoachMarks'
@@ -28,13 +27,13 @@ import { SwimmerDashboard }   from './pages/swimmer/SwimmerDashboard'
 import { MyTrainings }         from './pages/swimmer/MyTrainings'
 import { MyMarks }             from './pages/swimmer/MyMarks'
 import { MyEvolution }         from './pages/swimmer/MyEvolution'
-import { SwimmerAddTraining }  from './pages/swimmer/SwimmerAddTraining'
 
 // Compartido
-import { ImportWorkout }     from './pages/shared/ImportWorkout'
-import { ImportCompetition } from './pages/shared/ImportCompetition'
-import { BoardTraining }     from './pages/shared/BoardTraining'
-import { BoardCompetition }  from './pages/shared/BoardCompetition'
+import { ImportWorkout }          from './pages/shared/ImportWorkout'
+import { ImportCompetition }      from './pages/shared/ImportCompetition'
+import { BoardTraining }          from './pages/shared/BoardTraining'
+import { BoardCompetition }       from './pages/shared/BoardCompetition'
+import { ChooseTrainingMethod }   from './pages/shared/ChooseTrainingMethod'
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -111,7 +110,7 @@ export function App() {
             <Route path="/coach"                     element={<RequireCoach><CoachDashboard /></RequireCoach>} />
             <Route path="/coach/nadadores"           element={<RequireCoach><SwimmerList /></RequireCoach>} />
             <Route path="/coach/nadadores/:id"       element={<RequireCoach><SwimmerProfile /></RequireCoach>} />
-            <Route path="/coach/registrar"           element={<RequireCoach><AddTraining /></RequireCoach>} />
+            <Route path="/coach/registrar"           element={<RequireCoach><ChooseTrainingMethod mode="coach" /></RequireCoach>} />
             <Route path="/coach/importar"            element={<RequireCoach><ImportWorkout mode="coach" /></RequireCoach>} />
             <Route path="/coach/tablero"             element={<RequireCoach><BoardTraining mode="coach" /></RequireCoach>} />
             <Route path="/coach/competencia"         element={<RequireCoach><AddCompetition /></RequireCoach>} />
@@ -125,7 +124,7 @@ export function App() {
             <Route path="/nadador/:id/entrenos"                element={<RequireSwimmer><MyTrainings /></RequireSwimmer>} />
             <Route path="/nadador/:id/marcas"                  element={<RequireSwimmer><MyMarks /></RequireSwimmer>} />
             <Route path="/nadador/:id/evolucion"               element={<RequireSwimmer><MyEvolution /></RequireSwimmer>} />
-            <Route path="/nadador/:id/registrar"               element={<RequireSwimmer><SwimmerAddTraining /></RequireSwimmer>} />
+            <Route path="/nadador/:id/registrar"               element={<RequireSwimmer><ChooseTrainingMethod mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/importar"                element={<RequireSwimmer><ImportWorkout mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/tablero"                 element={<RequireSwimmer><BoardTraining mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-importar"    element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />

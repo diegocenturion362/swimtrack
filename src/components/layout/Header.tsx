@@ -22,9 +22,9 @@ export function Header({ title, subtitle, showBack = false, backTo, showLogout =
     else        navigate(-1)
   }
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (supabaseConfigured) {
-      await storeSignOut()
+      storeSignOut()
       navigate('/entrar', { replace: true })
     } else {
       clearRole()
