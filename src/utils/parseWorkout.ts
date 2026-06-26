@@ -215,9 +215,9 @@ function detectarIntensidad(texto: string): string {
   return ''
 }
 
-// Busca un intervalo en la línea: "@1'30s", "@50s", "@2"
+// Busca un intervalo en la línea: "@1'30s" / "c/1'30s", "@50s" / "c/50s", "@2"
 function extraerIntervalo(texto: string): { seg: number | null; txt: string } {
-  const m = texto.match(/@\s*([\d'′:."s]+)/i)
+  const m = texto.match(/(?:@|c\/)\s*([\d'′:."s]+)/i)
   if (!m) return { seg: null, txt: '' }
   const seg = parseIntervalo(m[1])
   return { seg, txt: seg !== null ? segundosATexto(seg) : '' }
