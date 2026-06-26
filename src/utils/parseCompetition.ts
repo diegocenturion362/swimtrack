@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PoolSize } from '../types'
+import { formatRepTime, parseRepTime } from './timeUtils'
 
 export interface ParsedCompetition {
   fecha:         string | null
@@ -34,23 +35,14 @@ const ESTILOS: { re: RegExp; nombre: string }[] = [
   { re: /\b(libre|crol|cr|free)\b/i,       nombre: 'Libre'     },
 ]
 
-// Convierte "1:02.45" / "58.34" / "58,3" / "2:05" a segundos
+// Convierte a segundos: acepta 56.18, 1:02.45, 56"18, 1'23"23
 export function parseTiempo(token: string): number {
-  const t = token.trim().replace(',', '.')
-  if (t.includes(':')) {
-    const [m, s] = t.split(':')
-    return parseInt(m) * 60 + parseFloat(s)
-  }
-  return parseFloat(t) || 0
+  return parseRepTime(token)
 }
 
-// Formatea segundos a "M:SS.xx" o "SS.xx"
+// Formatea segundos al formato de pileta: 56"18  o  1'23"23
 export function tiempoATexto(seg: number): string {
-  if (seg <= 0) return ''
-  if (seg < 60) return seg.toFixed(2).replace(/\.?0+$/, '')
-  const m = Math.floor(seg / 60)
-  const s = (seg % 60).toFixed(2).padStart(5, '0')
-  return `${m}:${s}`
+  return formatRepTime(seg)
 }
 
 // Encuentra todos los tokens de tiempo en un texto (deben tener ":" o decimales)
@@ -182,5 +174,85 @@ export function parseCompetition(texto: string): ParsedCompetition {
     parcialesTexto: parcialesFinales.map(tiempoATexto),
     puesto,
     notas,
+  }
+}
+
+// ─── Meet Mobile ──────────────────────────────────────────────────────────────
+
+const MONTHS_EN: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+}
+
+// Detecta si el texto fue copiado desde Meet Mobile
+export function isMeetMobile(texto: string): boolean {
+  return /HEAT\s*PLACE/i.test(texto) && /SPLITS/i.test(texto)
+}
+
+// Parsea el texto copiado de Meet Mobile y devuelve los mismos campos que parseCompetition
+export function parseMeetMobile(texto: string): ParsedCompetition {
+  const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+
+  // Nombre del torneo: primera línea toda en mayúsculas con más de 5 chars
+  const nombreTorneo = lineas.find(l => /^[A-ZÁÉÍÓÚÑ0-9 ]+$/.test(l) && l.length > 5) ?? ''
+
+  // Prueba: línea con distancia numérica + estilo (español o inglés)
+  let prueba = ''
+  for (const l of lineas) {
+    const mDist = l.match(/\b(\d{2,4})\s*(?:metros?|m)\b/i)
+    if (!mDist || parseInt(mDist[1]) < 25) continue
+    const est = ESTILOS.find(e => e.re.test(l))
+    if (est) { prueba = `${mDist[1]}m ${est.nombre}`; break }
+  }
+
+  // Fecha en formato inglés: "Sat | Dec 20,2025" o "Dec 20, 2025"
+  let fecha: string | null = null
+  for (const l of lineas) {
+    const m = l.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})[,\s]+(\d{4})/i)
+    if (m) {
+      const mon = MONTHS_EN[m[1].toLowerCase().slice(0, 3)]
+      if (mon) { fecha = `${m[3]}-${String(mon).padStart(2, '0')}-${m[2].padStart(2, '0')}`; break }
+    }
+    if (!fecha) { const f = parseFechaEspanol(l); if (f) { fecha = f; break } }
+  }
+
+  // Puesto en serie: número en la línea siguiente a "HEAT PLACE"
+  let puesto = 0
+  const hpIdx = lineas.findIndex(l => /^HEAT\s*PLACE$/i.test(l))
+  if (hpIdx >= 0) {
+    for (let i = hpIdx + 1; i < Math.min(hpIdx + 3, lineas.length); i++) {
+      if (/^\d+$/.test(lineas[i])) { puesto = parseInt(lineas[i]); break }
+    }
+  }
+
+  // Valores numéricos después de "Total": pares (parcial, acumulado) + total final
+  const totalIdx = lineas.findIndex(l => /^total$/i.test(l))
+  const numValues: number[] = []
+  if (totalIdx >= 0) {
+    for (let i = totalIdx + 1; i < lineas.length; i++) {
+      if (/^\d+[.,]\d+$/.test(lineas[i])) numValues.push(parseFloat(lineas[i].replace(',', '.')))
+    }
+  }
+
+  const tiempoFinal = numValues.length > 0 ? numValues[numValues.length - 1] : 0
+
+  // Tiempos acumulados (índices impares): 25m→[1], 50m→[3], 75m→[5]...
+  const parciales: number[] = []
+  for (let i = 1; i < numValues.length - 1; i += 2) {
+    if (numValues[i] < tiempoFinal) parciales.push(numValues[i])
+  }
+
+  return {
+    fecha,
+    nombreTorneo,
+    ciudad: '',
+    prueba,
+    pileta: null,
+    tiempoFinal,
+    tiempoTexto: tiempoATexto(tiempoFinal),
+    parciales,
+    parcialesTexto: parciales.map(tiempoATexto),
+    puesto,
+    notas: [],
   }
 }

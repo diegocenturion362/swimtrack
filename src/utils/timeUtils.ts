@@ -43,7 +43,7 @@ export function parseRepTime(str: string): number {
   let resto = t
   const apos = t.match(/^(\d+)\s*['′]\s*(.*)$/)   // 1'28"32  → min=1, resto=28"32
   if (apos) { min = parseInt(apos[1]); resto = apos[2].trim() }
-  resto = resto.replace(/["”]/g, '.').replace(',', '.').replace(/^:/, '')
+  resto = resto.replace(/[“\x22]/g, '.').replace(',', '.').replace(/^:/, '')
   let seg: number
   if (resto.includes(':')) {
     const [a, b] = resto.split(':')

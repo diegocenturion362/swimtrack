@@ -7,7 +7,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Field, Input, Select, PoolToggle } from '../../components/ui/FormField'
 import { useStore } from '../../store/useStore'
-import { parseCompetition, parseTiempo, tiempoATexto } from '../../utils/parseCompetition'
+import { parseCompetition, parseMeetMobile, isMeetMobile, parseTiempo, tiempoATexto } from '../../utils/parseCompetition'
 import type { Competition, PoolSize } from '../../types'
 
 const EJEMPLO = `Torneo Nacional
@@ -43,7 +43,11 @@ export function ImportCompetition({ mode }: Props) {
   const [puesto, setPuesto]     = useState('')
   const [tocado, setTocado]     = useState(false)
 
-  const parsed = useMemo(() => parseCompetition(texto), [texto])
+  const esMeetMobile = useMemo(() => isMeetMobile(texto), [texto])
+  const parsed       = useMemo(
+    () => esMeetMobile ? parseMeetMobile(texto) : parseCompetition(texto),
+    [texto, esMeetMobile],
+  )
 
   // Mientras el usuario no edite manualmente, los campos siguen al parseo en vivo
   useEffect(() => {
@@ -152,7 +156,14 @@ export function ImportCompetition({ mode }: Props) {
             <Card padding="md" className="bg-amber-50 border-amber-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-amber-700">{prueba || 'Prueba ?'}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-xs font-semibold text-amber-700">{prueba || 'Prueba ?'}</p>
+                    {esMeetMobile && (
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full leading-none">
+                        Meet Mobile
+                      </span>
+                    )}
+                  </div>
                   <p className="text-3xl font-black text-slate-900 leading-tight">
                     {tiempoSeg > 0 ? tiempoATexto(tiempoSeg) : '—'}
                   </p>
@@ -182,10 +193,10 @@ export function ImportCompetition({ mode }: Props) {
                 <Input placeholder="Ej: 100m Libre" value={prueba} onChange={e => edit(setPrueba)(e.target.value)} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Tiempo final" hint="58.34 o 1:02.45">
-                  <Input placeholder="58.34" value={tiempo} onChange={e => edit(setTiempo)(e.target.value)} />
+                <Field label="Tiempo final" hint='56"18  ó  1\'23"23'>
+                  <Input placeholder='56"18' value={tiempo} onChange={e => edit(setTiempo)(e.target.value)} />
                 </Field>
-                <Field label="Puesto">
+                <Field label="Puesto" hint={esMeetMobile ? 'Puesto en serie' : undefined}>
                   <Input type="number" placeholder="3" value={puesto} onChange={e => edit(setPuesto)(e.target.value)} inputMode="numeric" />
                 </Field>
               </div>
