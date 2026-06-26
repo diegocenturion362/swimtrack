@@ -81,7 +81,7 @@ export function MyMarks() {
 
         {/* Cargar competencia */}
         <button
-          onClick={() => navigate(`/nadador/${id}/competencia-tablero`)}
+          onClick={() => navigate(`/nadador/${id}/competencia`)}
           className="w-full flex items-center gap-2 p-3 mb-5 rounded-xl bg-blue-700 text-white text-left active:scale-[0.99] transition-transform"
         >
           <Plus size={18} className="shrink-0" />

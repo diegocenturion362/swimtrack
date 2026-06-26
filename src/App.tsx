@@ -34,6 +34,7 @@ import { ImportCompetition }      from './pages/shared/ImportCompetition'
 import { BoardTraining }          from './pages/shared/BoardTraining'
 import { BoardCompetition }       from './pages/shared/BoardCompetition'
 import { ChooseTrainingMethod }   from './pages/shared/ChooseTrainingMethod'
+import { ChooseCompetitionMethod } from './pages/shared/ChooseCompetitionMethod'
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ export function App() {
             <Route path="/coach/registrar"           element={<RequireCoach><ChooseTrainingMethod mode="coach" /></RequireCoach>} />
             <Route path="/coach/importar"            element={<RequireCoach><ImportWorkout mode="coach" /></RequireCoach>} />
             <Route path="/coach/tablero"             element={<RequireCoach><BoardTraining mode="coach" /></RequireCoach>} />
-            <Route path="/coach/competencia"         element={<RequireCoach><AddCompetition /></RequireCoach>} />
+            <Route path="/coach/competencia"         element={<RequireCoach><ChooseCompetitionMethod mode="coach" /></RequireCoach>} />
             <Route path="/coach/competencia-importar" element={<RequireCoach><ImportCompetition mode="coach" /></RequireCoach>} />
             <Route path="/coach/competencia-tablero"  element={<RequireCoach><BoardCompetition mode="coach" /></RequireCoach>} />
             <Route path="/coach/similares"           element={<RequireCoach><SimilarSessions /></RequireCoach>} />
@@ -127,6 +128,7 @@ export function App() {
             <Route path="/nadador/:id/registrar"               element={<RequireSwimmer><ChooseTrainingMethod mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/importar"                element={<RequireSwimmer><ImportWorkout mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/tablero"                 element={<RequireSwimmer><BoardTraining mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/competencia"             element={<RequireSwimmer><ChooseCompetitionMethod mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-importar"    element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-tablero"     element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
 
