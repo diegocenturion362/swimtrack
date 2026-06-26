@@ -193,7 +193,7 @@ export function ImportCompetition({ mode }: Props) {
                 <Input placeholder="Ej: 100m Libre" value={prueba} onChange={e => edit(setPrueba)(e.target.value)} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Tiempo final" hint='56"18  ó  1\'23"23'>
+                <Field label="Tiempo final" hint={`56"18  ó  1'23"23`}>
                   <Input placeholder='56"18' value={tiempo} onChange={e => edit(setTiempo)(e.target.value)} />
                 </Field>
                 <Field label="Puesto" hint={esMeetMobile ? 'Puesto en serie' : undefined}>
