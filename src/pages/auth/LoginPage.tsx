@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { signIn } from '../../lib/db'
+import { setRecordarme } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 
 export function LoginPage() {
@@ -14,9 +15,10 @@ export function LoginPage() {
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [showPass,   setShowPass]   = useState(false)
+  const [recordarme, setRecordarmeState] = useState(true)
+  const [loading,    setLoading]    = useState(false)
+  const [error,      setError]      = useState('')
 
   useEffect(() => {
     if (!loaded) return
@@ -29,6 +31,7 @@ export function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setRecordarme(recordarme)   // debe ir ANTES de signIn para que authStorage lo tome
     const { error: err } = await signIn(email, password)
     setLoading(false)
     if (err) setError(traducirError(err.message))
@@ -83,6 +86,16 @@ export function LoginPage() {
               </button>
             </div>
           </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={recordarme}
+              onChange={e => setRecordarmeState(e.target.checked)}
+              className="w-4 h-4 rounded accent-blue-600"
+            />
+            <span className="text-sm text-slate-600">Recordarme</span>
+          </label>
 
           {error && (
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
