@@ -10,6 +10,7 @@ import { useStore } from '../../store/useStore'
 import { weeklyVolume } from '../../utils/swimmerStatus'
 import { formatTime } from '../../utils/timeUtils'
 import { getSimilarGroups } from '../../utils/similarity'
+import type { PoolSize } from '../../types'
 
 export function MyEvolution() {
   const { id } = useParams<{ id: string }>()
@@ -22,6 +23,7 @@ export function MyEvolution() {
 
   // Todos los hooks antes del early return para no violar las reglas de React
   const [pruebaSeleccionada, setPruebaSeleccionada] = useState('')
+  const [piletaSeleccionada, setPiletaSeleccionada] = useState<PoolSize | ''>('')
 
   const swimmer = swimmers.find(s => s.id === id)
 
@@ -42,11 +44,24 @@ export function MyEvolution() {
 
   const pruebaEfectiva = pruebaSeleccionada || swimmer?.pruebaPrincipal || ''
 
+  // Piletas disponibles para la prueba seleccionada
+  const piletasDisponibles = useMemo(
+    () => Array.from(new Set(
+      misComps.filter(c => c.prueba === pruebaEfectiva).map(c => c.pileta)
+    )).sort() as PoolSize[],
+    [misComps, pruebaEfectiva]
+  )
+
+  // Si la pileta seleccionada no existe en esta prueba, usar la primera disponible
+  const piletaEfectiva: PoolSize | '' = (piletaSeleccionada && piletasDisponibles.includes(piletaSeleccionada))
+    ? piletaSeleccionada
+    : piletasDisponibles[0] ?? ''
+
   const swComps = useMemo(
     () => misComps
-      .filter(c => c.prueba === pruebaEfectiva)
+      .filter(c => c.prueba === pruebaEfectiva && (!piletaEfectiva || c.pileta === piletaEfectiva))
       .sort((a, b) => a.fecha.localeCompare(b.fecha)),
-    [misComps, pruebaEfectiva]
+    [misComps, pruebaEfectiva, piletaEfectiva]
   )
 
   const groups = useMemo(
@@ -69,12 +84,12 @@ export function MyEvolution() {
 
         {/* ── Selector de prueba (chips horizontales) ───────────────────────── */}
         {todasPruebas.length > 0 && (
-          <div className="overflow-x-auto -mx-4 px-4 pb-1 mb-4">
+          <div className="overflow-x-auto -mx-4 px-4 pb-1 mb-3">
             <div className="flex gap-2 w-max">
               {todasPruebas.map(p => (
                 <button
                   key={p}
-                  onClick={() => setPruebaSeleccionada(p)}
+                  onClick={() => { setPruebaSeleccionada(p); setPiletaSeleccionada('') }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                     p === pruebaEfectiva
                       ? 'bg-blue-700 text-white'
@@ -88,10 +103,29 @@ export function MyEvolution() {
           </div>
         )}
 
+        {/* ── Selector de pileta ────────────────────────────────────────────── */}
+        {piletasDisponibles.length > 0 && (
+          <div className="flex gap-2 mb-4">
+            {piletasDisponibles.map(p => (
+              <button
+                key={p}
+                onClick={() => setPiletaSeleccionada(p)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  p === piletaEfectiva
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                🏊 Pileta {p}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ── Evolución en competencia ──────────────────────────────────────── */}
         <Card className="mb-4 fade-in">
           <p className="text-sm font-bold text-slate-800 mb-0.5">
-            {pruebaEfectiva} — Competencias
+            {pruebaEfectiva}{piletaEfectiva ? ` · Pileta ${piletaEfectiva}` : ''} — Competencias
           </p>
           <p className="text-xs text-slate-400 mb-3">El eje Y está invertido: más arriba = mejor tiempo</p>
           {compChartData.length >= 2 ? (
