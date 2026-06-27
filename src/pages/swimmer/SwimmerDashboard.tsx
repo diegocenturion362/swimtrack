@@ -1,5 +1,5 @@
-import { useParams } from 'react-router-dom'
-import { Target, Calendar, TrendingUp, MessageCircle, Droplets } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -100,6 +100,31 @@ export function SwimmerDashboard() {
             </div>
           )}
         </Card>
+
+        {/* Acciones rápidas */}
+        <div className="mb-4">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Acciones rápidas</p>
+          <div className="flex flex-col gap-2">
+            <Link to={`/nadador/${id}/registrar`}
+              className="flex items-center gap-3 px-4 py-3.5 bg-blue-700 rounded-2xl text-white active:scale-95 transition-transform">
+              <span className="text-2xl">💪</span>
+              <div>
+                <p className="font-bold text-sm">Registrar entreno</p>
+                <p className="text-blue-200 text-xs">Cargá la práctica de hoy</p>
+              </div>
+              <ChevronRight size={16} className="ml-auto text-blue-300" />
+            </Link>
+            <Link to={`/nadador/${id}/competencia`}
+              className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-200 text-slate-800 active:scale-95 transition-transform shadow-sm">
+              <span className="text-2xl">🏆</span>
+              <div>
+                <p className="font-bold text-sm">Cargar competencia</p>
+                <p className="text-slate-400 text-xs">Guardá tu próxima marca</p>
+              </div>
+              <ChevronRight size={16} className="ml-auto text-slate-400" />
+            </Link>
+          </div>
+        </div>
 
         {/* Editar objetivo */}
         <EditObjective swimmer={swimmer} />

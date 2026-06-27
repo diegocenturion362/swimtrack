@@ -75,6 +75,11 @@ const restoTexto = (val: string) => {
   if (seg <= 0) return ''
   return `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
 }
+function digitosAFormato(digits: string): string {
+  if (!digits) return ''
+  if (digits.length <= 2) return `${parseInt(digits, 10)}"`
+  return `${parseInt(digits.slice(0, -2), 10)}'${digits.slice(-2)}"`
+}
 
 // ─── Métricas (puras, a nivel módulo) ──────────────────────────────────────────
 
@@ -551,7 +556,7 @@ function BloqueCard({
       {/* Series del trabajo */}
       <div className="grid grid-cols-2 gap-2 mb-2">
         <Mini label="Series (repite el trabajo)" value={b.series} onChange={v => onUpdate({ series: v })} placeholder="2" />
-        <Mini label="Desc. e/ series" value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder={`1'00"`} inputMode="text" />
+        <Mini label="Desc. e/ series" value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder={`1'00"`} digitTime />
       </div>
 
       {/* Tipo de descanso entre series */}
@@ -656,7 +661,7 @@ function ParteRow({
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Reps" value={p.reps} onChange={v => onUpdate({ reps: v })} placeholder="5" />
         <Mini label={`Dist. (${distUnit})`} value={p.distancia} onChange={v => onUpdate({ distancia: v })} placeholder="50" />
-        <Mini label={descLabel} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder={descPlaceholder} inputMode="text" />
+        <Mini label={descLabel} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder={descPlaceholder} digitTime />
       </div>
 
       <div className="mt-2">
@@ -713,16 +718,52 @@ function ParteRow({
   )
 }
 
-function Mini({ label, value, onChange, placeholder, inputMode = 'decimal' }: {
+function Mini({ label, value, onChange, placeholder, inputMode = 'decimal', digitTime = false }: {
   label: string; value: string; onChange: (v: string) => void
-  placeholder?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  placeholder?: string
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  digitTime?: boolean
 }) {
+  const handleKeyDown = digitTime ? (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const digits = value.replace(/[^0-9]/g, '')
+    if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault()
+      if (digits.length >= 4) return
+      onChange(digitosAFormato(digits + e.key))
+    } else if (e.key === 'Backspace') {
+      e.preventDefault()
+      const nd = digits.slice(0, -1)
+      onChange(nd ? digitosAFormato(nd) : '')
+    } else if (e.key === 'Delete') {
+      e.preventDefault()
+      onChange('')
+    } else if (!['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Escape'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault()
+    }
+  } : undefined
+
+  const handleChange = digitTime ? (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputType = (e.nativeEvent as InputEvent).inputType
+    const oldDigits = value.replace(/[^0-9]/g, '')
+    if (inputType?.startsWith('delete')) {
+      const nd = oldDigits.slice(0, -1)
+      onChange(nd ? digitosAFormato(nd) : '')
+    } else {
+      const newDigits = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+      onChange(newDigits ? digitosAFormato(newDigits) : '')
+    }
+  } : (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)
+
   return (
     <div>
       <label className="text-[11px] font-semibold text-slate-500 block mb-1 leading-tight">{label}</label>
       <input
-        value={value} onChange={e => onChange(e.target.value)}
-        inputMode={inputMode} placeholder={placeholder}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={digitTime ? (e) => { const l = e.target.value.length; e.target.setSelectionRange(l, l) } : undefined}
+        inputMode={digitTime ? 'numeric' : inputMode}
+        placeholder={placeholder}
         className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
