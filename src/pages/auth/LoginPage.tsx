@@ -116,6 +116,14 @@ export function LoginPage() {
             </Link>
           </p>
         </form>
+        <a
+          href="/tutorial-offline.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs mt-5 transition-colors"
+        >
+          📖 Ver tutorial de la app
+        </a>
       </div>
     </div>
   )

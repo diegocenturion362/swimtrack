@@ -164,6 +164,21 @@ export function CoachDashboard() {
           </>
         )}
 
+        {/* Tutorial */}
+        <a
+          href="/tutorial-offline.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 p-4 mb-5 rounded-2xl bg-slate-50 border border-slate-200 text-left active:scale-[0.98] transition-transform"
+        >
+          <span className="text-2xl">📖</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-700">Tutorial de la app</p>
+            <p className="text-xs text-slate-400">Guía completa paso a paso</p>
+          </div>
+          <ChevronRight size={16} className="text-slate-400 shrink-0" />
+        </a>
+
         {/* Últimas sesiones */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Últimas sesiones</h2>

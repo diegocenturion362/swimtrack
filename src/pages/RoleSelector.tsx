@@ -82,9 +82,17 @@ export function RoleSelector() {
           ))}
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          SwimTrack · v0.1
-        </p>
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <p className="text-slate-600 text-xs">SwimTrack · v0.1</p>
+          <a
+            href="/tutorial-offline.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+          >
+            📖 Ver tutorial de la app
+          </a>
+        </div>
       </div>
     </div>
   )
