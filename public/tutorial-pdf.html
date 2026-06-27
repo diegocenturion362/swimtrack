@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tutorial SwimTrack — Guía completa</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px;line-height:1.5}
+
+/* Print button (hidden in print) */
+.print-btn{position:fixed;top:12px;right:12px;z-index:999;background:#1e40af;color:white;border:none;padding:10px 20px;border-radius:50px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(30,64,175,.4)}
+.print-btn:hover{background:#1e3a8a}
+
+/* Page wrapper */
+.page{width:100%;max-width:680px;margin:0 auto;padding:16px}
+
+/* Cover */
+.cover{background:linear-gradient(160deg,#0f172a 0%,#1e3a8a 100%);color:white;padding:40px 32px 36px;border-radius:16px;margin-bottom:20px;text-align:center}
+.cover-icon{font-size:52px;margin-bottom:12px;display:block}
+.cover-title{font-size:28px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px}
+.cover-sub{font-size:13px;color:#93c5fd;margin-bottom:20px}
+.cover-url{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:6px 16px;border-radius:50px;font-size:12px;font-family:monospace;color:#93c5fd;margin-bottom:20px}
+.cover-chips{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:50px;font-size:11px;color:rgba(255,255,255,.8);font-weight:600}
+
+/* Section headers */
+.section{margin-bottom:18px;page-break-inside:avoid}
+.section-hdr{background:#1e40af;color:white;padding:9px 16px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:10px}
+.section-num{background:rgba(255,255,255,.2);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
+.section-ttl{font-size:14px;font-weight:800}
+.section-body{background:white;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:14px 16px}
+
+/* Step row */
+.step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.step:last-child{margin-bottom:0}
+.step-n{width:22px;height:22px;background:#1e40af;color:white;border-radius:50%;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-n.g{background:#10b981}
+.step-n.y{background:#f59e0b}
+.step-txt{font-size:12.5px;color:#334155;line-height:1.48}
+.step-txt strong{color:#1e293b;font-weight:700}
+.step-txt code{background:#eff6ff;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:11px;font-family:monospace}
+
+/* Phone + text side by side */
+.row-2col{display:flex;gap:16px;align-items:flex-start}
+.col-phone{flex-shrink:0}
+.col-text{flex:1}
+.col-text h4{font-size:12px;font-weight:800;color:#1e40af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+
+/* Phone frames */
+.phone{width:130px;background:#1e293b;border-radius:22px;border:4px solid #334155;padding:12px 3px 6px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.phone-notch{width:44px;height:12px;background:#1e293b;border-radius:0 0 8px 8px;margin:0 auto -12px;position:relative;z-index:2}
+.phone-screen{border-radius:14px;overflow:hidden;background:#f8fafc}
+
+/* Tip box */
+.tip-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-top:10px}
+.tip-box p{font-size:11.5px;color:#1e3a8a;margin-bottom:4px}
+.tip-box p:last-child{margin-bottom:0}
+.tip-box strong{font-weight:700}
+
+/* Notation box */
+.notation{background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:10px;font-family:monospace;font-size:11px}
+.notation p{margin-bottom:4px;color:#334155}
+.notation p:last-child{margin-bottom:0}
+.notation .comment{color:#94a3b8}
+
+/* Alert box */
+.alert{background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:#92400e}
+
+/* Two-column tip grid */
+.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tip-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px;font-size:11px}
+.tip-card strong{font-size:12px;display:block;margin-bottom:3px;color:#1e293b}
+.tip-card span{color:#64748b}
+
+/* Final section */
+.final{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:white;border-radius:12px;padding:24px;text-align:center;margin-top:20px}
+.final h2{font-size:20px;font-weight:900;margin-bottom:8px}
+.final p{font-size:12px;color:#93c5fd;margin-bottom:16px}
+.final .url-big{display:inline-block;background:#3b82f6;color:white;padding:10px 24px;border-radius:50px;font-weight:800;font-size:13px;text-decoration:none}
+
+/* Index table */
+.index{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:20px}
+.index h3{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.index-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+.index-row:last-child{border-bottom:none}
+.index-n{font-weight:700;color:#1e40af;width:20px;flex-shrink:0}
+.index-title{color:#334155;flex:1}
+.index-pg{color:#94a3b8;font-size:10px}
+
+/* Print styles */
+@media print{
+  body{background:white;font-size:11px}
+  .print-btn{display:none}
+  .page{padding:0;max-width:100%}
+  .cover{border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .section-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .section{page-break-inside:avoid;margin-bottom:14px}
+  .final{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tip-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .notation{page-break-inside:avoid}
+  @page{margin:1.5cm 1.2cm;size:A4}
+}
+
+/* Responsive */
+@media(max-width:520px){
+  .row-2col{flex-direction:column;align-items:center}
+  .tip-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">⬇ Guardar como PDF</button>
+
+<div class="page">
+
+<!-- PORTADA -->
+<div class="cover">
+  <span class="cover-icon">🏊</span>
+  <div class="cover-title">Tutorial SwimTrack</div>
+  <div class="cover-sub">Guía completa — desde el registro hasta todos los módulos</div>
+  <div class="cover-url">swimtrack-5r6.pages.dev</div>
+  <div class="cover-chips">
+    <span class="chip">📝 Entrenos</span>
+    <span class="chip">🏆 Competencias</span>
+    <span class="chip">📈 Evolución</span>
+    <span class="chip">📱 App en tu celu</span>
+  </div>
+</div>
+
+<!-- ÍNDICE -->
+<div class="index">
+  <h3>Contenido</h3>
+  <div class="index-row"><span class="index-n">1</span><span class="index-title">Acceder y crear tu cuenta</span></div>
+  <div class="index-row"><span class="index-n">2</span><span class="index-title">Elegir tu rol (nadador / entrenador)</span></div>
+  <div class="index-row"><span class="index-n">3</span><span class="index-title">Tu panel principal y la app instalada</span></div>
+  <div class="index-row"><span class="index-n">4</span><span class="index-title">Cargar entreno — por texto</span></div>
+  <div class="index-row"><span class="index-n">5</span><span class="index-title">Cargar entreno — por tablero</span></div>
+  <div class="index-row"><span class="index-n">6</span><span class="index-title">Ver mis entrenos</span></div>
+  <div class="index-row"><span class="index-n">7</span><span class="index-title">Cargar competencia — tres métodos</span></div>
+  <div class="index-row"><span class="index-n">8</span><span class="index-title">Importar desde foto (con IA)</span></div>
+  <div class="index-row"><span class="index-n">9</span><span class="index-title">Importar desde texto</span></div>
+  <div class="index-row"><span class="index-n">10</span><span class="index-title">Mis marcas</span></div>
+  <div class="index-row"><span class="index-n">11</span><span class="index-title">Mi evolución — gráfico de progreso</span></div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 1: ACCEDER -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">1</div>
+    <div class="section-ttl">Acceder y crear tu cuenta</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="52" fill="#1e40af"/>
+              <text x="62" y="20" text-anchor="middle" font-size="16">🏊</text>
+              <text x="62" y="34" text-anchor="middle" font-size="8.5" font-weight="900" fill="white">SwimTrack</text>
+              <text x="62" y="46" text-anchor="middle" font-size="6" fill="#bfdbfe">Crear cuenta</text>
+              <text x="10" y="70" font-size="6" fill="#64748b" font-weight="700">NOMBRE</text>
+              <rect x="10" y="74" width="104" height="18" rx="5" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="16" y="86" font-size="6.5" fill="#94a3b8">Tu nombre</text>
+              <text x="10" y="104" font-size="6" fill="#64748b" font-weight="700">EMAIL</text>
+              <rect x="10" y="108" width="104" height="18" rx="5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="16" y="120" font-size="6.5" fill="#1e293b">mi@email.com</text>
+              <text x="10" y="138" font-size="6" fill="#64748b" font-weight="700">CONTRASEÑA</text>
+              <rect x="10" y="142" width="104" height="18" rx="5" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="16" y="154" font-size="8" fill="#94a3b8">••••••••</text>
+              <rect x="10" y="170" width="104" height="22" rx="11" fill="#1e40af"/>
+              <text x="62" y="185" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">Crear mi cuenta</text>
+              <text x="62" y="208" text-anchor="middle" font-size="6" fill="#3b82f6">¿Ya tenés cuenta? Iniciar sesión</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Cómo registrarte</h4>
+        <div class="step"><div class="step-n">1</div><div class="step-txt">Abrí <strong>Chrome</strong> o <strong>Safari</strong> y entrá a <code>swimtrack-5r6.pages.dev</code></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-txt">Tocá <strong>Crear cuenta</strong> y completá tu nombre, email y contraseña</div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-txt">Tocá <strong>Crear mi cuenta</strong> — ¡ya estás dentro!</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Si ya tenés cuenta, tocá <strong>Iniciar sesión</strong> en lugar de registrarte</div></div>
+        <div class="tip-box">
+          <p><strong>¿Olvidaste la contraseña?</strong> Tocá "¿Olvidaste tu contraseña?" en la pantalla de login y te llega un link por email para restablecerla.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 2: ROL -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">2</div>
+    <div class="section-ttl">Elegir tu rol</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="40" fill="#1e40af"/>
+              <text x="62" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="white">¿Quién sos?</text>
+              <text x="62" y="35" text-anchor="middle" font-size="6" fill="#bfdbfe">Elegí una sola vez</text>
+              <!-- Swimmer card selected -->
+              <rect x="8" y="48" width="108" height="50" rx="9" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="26" cy="73" r="12" fill="#dbeafe"/>
+              <text x="26" y="78" text-anchor="middle" font-size="12">🏊</text>
+              <text x="46" y="65" font-size="8" font-weight="800" fill="#1e3a8a">Soy Nadador</text>
+              <text x="46" y="76" font-size="6" fill="#3b82f6">Registro mis entrenos</text>
+              <text x="46" y="85" font-size="6" fill="#3b82f6">y mis marcas</text>
+              <circle cx="110" cy="60" r="6" fill="#3b82f6"/>
+              <text x="110" y="64" text-anchor="middle" font-size="7" fill="white">✓</text>
+              <!-- Coach card -->
+              <rect x="8" y="106" width="108" height="50" rx="9" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <circle cx="26" cy="131" r="12" fill="#f3e8ff"/>
+              <text x="26" y="136" text-anchor="middle" font-size="12">📋</text>
+              <text x="46" y="123" font-size="8" font-weight="800" fill="#1e293b">Soy Entrenador</text>
+              <text x="46" y="134" font-size="6" fill="#64748b">Gestiono mi equipo</text>
+              <rect x="8" y="168" width="108" height="22" rx="11" fill="#1e40af"/>
+              <text x="62" y="182" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">Continuar</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>¿Qué elegir?</h4>
+        <div class="step"><div class="step-n">🏊</div><div class="step-txt"><strong>Soy Nadador</strong> — si sos vos el que nada y querés registrar tus entrenamientos y marcas personales</div></div>
+        <div class="step"><div class="step-n">📋</div><div class="step-txt"><strong>Soy Entrenador</strong> — si dirigís un equipo y querés cargar los datos de varios nadadores</div></div>
+        <div class="alert">
+          ⚠ <strong>¡Ojo!</strong> Esta elección <strong>no se puede cambiar</strong> después. Pensalo bien antes de tocar Continuar.
+        </div>
+        <div class="tip-box" style="margin-top:8px">
+          <p>La app se adapta al rol que elegís. Si sos <strong>nadador</strong>, ves tu propio historial. Si sos <strong>entrenador</strong>, ves la lista de tus nadadores y podés registrar datos de cada uno.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 3: DASHBOARD + PWA -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">3</div>
+    <div class="section-ttl">Tu panel principal e instalar la app</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="58" fill="#1e40af"/>
+              <circle cx="18" cy="22" r="10" fill="#3b82f6"/>
+              <text x="18" y="26" text-anchor="middle" font-size="9" font-weight="900" fill="white">D</text>
+              <text x="33" y="16" font-size="8" font-weight="800" fill="white">¡Hola, Diego!</text>
+              <text x="33" y="28" font-size="5.5" fill="#bfdbfe">Viernes 27/06</text>
+              <rect x="6" y="36" width="52" height="26" rx="7" fill="rgba(255,255,255,.15)"/>
+              <text x="32" y="51" text-anchor="middle" font-size="11" font-weight="900" fill="white">127</text>
+              <text x="32" y="60" text-anchor="middle" font-size="5" fill="#bfdbfe">km totales</text>
+              <rect x="66" y="36" width="52" height="26" rx="7" fill="rgba(255,255,255,.15)"/>
+              <text x="92" y="51" text-anchor="middle" font-size="11" font-weight="900" fill="white">24</text>
+              <text x="92" y="60" text-anchor="middle" font-size="5" fill="#bfdbfe">competencias</text>
+              <rect x="6" y="72" width="112" height="28" rx="7" fill="#1e40af"/>
+              <text x="19" y="89" font-size="11">💪</text>
+              <text x="34" y="83" font-size="7" font-weight="800" fill="white">Registrar entreno</text>
+              <text x="34" y="93" font-size="5.5" fill="#93c5fd">Cargá la práctica de hoy</text>
+              <rect x="6" y="108" width="112" height="28" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="19" y="125" font-size="11">🏆</text>
+              <text x="34" y="119" font-size="7" font-weight="800" fill="#1e293b">Cargar competencia</text>
+              <text x="34" y="129" font-size="5.5" fill="#64748b">Guardá tu próxima marca</text>
+              <rect x="6" y="145" width="112" height="28" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="19" y="157" font-size="5.5" fill="#94a3b8" font-weight="700">ÚLTIMOS ENTRENOS</text>
+              <text x="12" y="167" font-size="7" font-weight="700" fill="#1e293b">Jueves 26/06</text>
+              <text x="12" y="177" font-size="6" fill="#64748b">Aeróbico · 4.500 m</text>
+              <rect x="0" y="195" width="124" height="25" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="15" y="211" text-anchor="middle" font-size="11">🏠</text>
+              <text x="46" y="211" text-anchor="middle" font-size="11">📝</text>
+              <text x="78" y="211" text-anchor="middle" font-size="11">🏆</text>
+              <text x="109" y="211" text-anchor="middle" font-size="11">📈</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Lo que ves en el panel</h4>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt"><strong>Estadísticas:</strong> km totales y cantidad de competencias</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Botones rápidos para cargar <strong>entreno</strong> o <strong>competencia</strong></div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt"><strong>Barra de abajo:</strong> Inicio · Entrenos · Marcas · Evolución</div></div>
+        <div class="tip-box" style="margin-top:10px">
+          <p style="font-weight:800;margin-bottom:5px">📱 Instalar la app en tu celu</p>
+          <p><strong>Android:</strong> tocá los tres puntos <code>⋯</code> del Chrome → "Instalar app"</p>
+          <p style="margin-top:4px"><strong>iPhone:</strong> ícono compartir <code>⬆</code> en Safari → "Añadir a pantalla de inicio"</p>
+          <p style="margin-top:4px">Una vez instalada, abre <strong>sin barra del navegador</strong>, igual que cualquier app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 4: ENTRENO POR TEXTO -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">4</div>
+    <div class="section-ttl">Cargar entreno — por texto</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="38" fill="#1e40af"/>
+              <text x="62" y="21" text-anchor="middle" font-size="9" font-weight="900" fill="white">Importar entreno</text>
+              <text x="62" y="33" text-anchor="middle" font-size="6" fill="#bfdbfe">Pegá el texto del plan</text>
+              <rect x="8" y="44" width="108" height="66" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="14" y="58" font-size="6.5" fill="#1e293b" font-weight="600">500 suave FL</text>
+              <text x="14" y="69" font-size="6.5" fill="#1e293b">4x100 @1'30" espalda</text>
+              <text x="14" y="80" font-size="6.5" fill="#1e293b">8x50 @50" mariposa</text>
+              <text x="14" y="91" font-size="6.5" fill="#1e293b">200 PIERNAS c/45"</text>
+              <text x="14" y="102" font-size="6.5" fill="#64748b">300 vuelta crol</text>
+              <rect x="8" y="118" width="108" height="64" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+              <text x="14" y="130" font-size="5.5" font-weight="800" fill="#1e40af">VISTA PREVIA</text>
+              <text x="14" y="141" font-size="5.5" fill="#1e293b">• 500m — Libre suave</text>
+              <text x="14" y="151" font-size="5.5" fill="#1e293b">• 4×100m — Espalda @1'30"</text>
+              <text x="14" y="161" font-size="5.5" fill="#1e293b">• 8×50m — Mariposa @50"</text>
+              <text x="14" y="171" font-size="5.5" fill="#1e293b">• 200m — Piernas c/45"</text>
+              <text x="114" y="176" text-anchor="end" font-size="6" font-weight="800" fill="#1e40af">2.500m</text>
+              <rect x="8" y="190" width="108" height="22" rx="11" fill="#1e40af"/>
+              <text x="62" y="204" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">Guardar entreno</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Cómo usar el modo texto</h4>
+        <div class="step"><div class="step-n">1</div><div class="step-txt">Desde el panel tocá <strong>Registrar entreno</strong> → <strong>Pegar texto</strong></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-txt">Pegá el texto del plan que te mandó tu profe (o escribilo vos)</div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-txt">Revisá la <strong>vista previa</strong> y tocá <strong>Guardar entreno</strong></div></div>
+        <div class="notation">
+          <p><strong>Formato del texto:</strong></p>
+          <p><code>4x100 espalda @1'30"</code> <span class="comment">← salida cada 1'30"</span></p>
+          <p><code>8x50 MP c/45"</code> <span class="comment">← descanso fijo de 45"</span></p>
+          <p><code>500 suave FL</code> <span class="comment">← nado suelto, sin series</span></p>
+          <p><code>200 PIERNAS</code> <span class="comment">← ejercicio especial</span></p>
+          <p style="margin-top:5px"><span class="comment">Estilos: FL=libre, MP=mariposa, ES=espalda, PE=pecho, KI=piernas</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 5: ENTRENO POR TABLERO -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">5</div>
+    <div class="section-ttl">Cargar entreno — por tablero</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="38" fill="#1e40af"/>
+              <text x="62" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="white">Tablero</text>
+              <text x="62" y="33" text-anchor="middle" font-size="6" fill="#bfdbfe">Completá bloque por bloque</text>
+              <rect x="8" y="44" width="108" height="84" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1.5"/>
+              <text x="14" y="56" font-size="6" font-weight="800" fill="#1e40af">BLOQUE 1</text>
+              <rect x="14" y="60" width="54" height="16" rx="5" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="41" y="71" text-anchor="middle" font-size="6.5" fill="#1e293b">Mariposa</text>
+              <rect x="80" y="60" width="32" height="16" rx="5" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="96" y="71" text-anchor="middle" font-size="7" font-weight="700" fill="#1e293b">4</text>
+              <text x="14" y="88" font-size="5" fill="#94a3b8">REPS</text>
+              <text x="46" y="88" font-size="5" fill="#94a3b8">DIST</text>
+              <text x="76" y="88" font-size="5" fill="#94a3b8">TIEMPO</text>
+              <text x="106" y="88" font-size="5" fill="#94a3b8">SAL.</text>
+              <rect x="8" y="91" width="108" height="16" rx="3" fill="#f8fafc" stroke="#e2e8f0" stroke-width=".5"/>
+              <text x="18" y="102" font-size="6" font-weight="700" fill="#1e293b">×1</text>
+              <text x="44" y="102" text-anchor="middle" font-size="6" fill="#1e293b">100m</text>
+              <text x="77" y="102" text-anchor="middle" font-size="6" fill="#1e293b">1'03"</text>
+              <text x="107" y="102" text-anchor="middle" font-size="6" fill="#1e293b">1'30"</text>
+              <text x="14" y="120" font-size="5.5" fill="#64748b">Desc. entre series: <tspan font-weight="700" fill="#1e293b">2'00"</tspan></text>
+              <rect x="8" y="136" width="108" height="22" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+              <text x="62" y="150" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="800">+ Agregar bloque</text>
+              <rect x="8" y="166" width="50" height="16" rx="5" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="33" y="177" text-anchor="middle" font-size="5.5" fill="#1e293b">27/06/2026</text>
+              <rect x="66" y="166" width="50" height="16" rx="5" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="91" y="177" text-anchor="middle" font-size="5.5" fill="#1e293b">8 horas sueño</text>
+              <rect x="8" y="192" width="108" height="22" rx="11" fill="#1e40af"/>
+              <text x="62" y="206" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">Guardar entreno</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Cómo completar el tablero</h4>
+        <div class="step"><div class="step-n">1</div><div class="step-txt">Tocá <strong>Registrar entreno → Tablero</strong></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-txt">Elegí el <strong>estilo</strong> y la cantidad de <strong>series</strong> del bloque</div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-txt">Completá <strong>reps, distancia, tiempo</strong> y <strong>salida/descanso</strong> de cada fila</div></div>
+        <div class="step"><div class="step-n">4</div><div class="step-txt">Tocá <strong>+ Agregar bloque</strong> para el siguiente ejercicio</div></div>
+        <div class="step"><div class="step-n">5</div><div class="step-txt">Completá la <strong>fecha</strong> y las <strong>horas de sueño</strong>. Tocá <strong>Guardar</strong></div></div>
+        <div class="tip-box">
+          <p><strong>Tip:</strong> El descanso se escribe en formato de tiempo: <code>45"</code> (45 segundos), <code>1'30"</code> (1 minuto 30 segundos), <code>2'</code> (2 minutos).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 6: MIS ENTRENOS -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">6</div>
+    <div class="section-ttl">Ver mis entrenos</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="44" fill="#1e40af"/>
+              <text x="62" y="18" text-anchor="middle" font-size="9" font-weight="900" fill="white">Mis Entrenos</text>
+              <text x="32" y="32" text-anchor="middle" font-size="9" font-weight="900" fill="white">48</text>
+              <text x="32" y="41" text-anchor="middle" font-size="5.5" fill="#bfdbfe">sesiones</text>
+              <text x="62" y="32" text-anchor="middle" font-size="9" font-weight="900" fill="white">127</text>
+              <text x="62" y="41" text-anchor="middle" font-size="5.5" fill="#bfdbfe">km</text>
+              <text x="92" y="32" text-anchor="middle" font-size="9" font-weight="900" fill="white">52h</text>
+              <text x="92" y="41" text-anchor="middle" font-size="5.5" fill="#bfdbfe">total</text>
+              <rect x="8" y="50" width="108" height="36" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="50" width="3" height="36" rx="1.5" fill="#3b82f6"/>
+              <text x="16" y="64" font-size="7" font-weight="700" fill="#1e293b">Jueves 26/06</text>
+              <text x="16" y="74" font-size="6" fill="#64748b">Aeróbico · 4.500 m · 90 min</text>
+              <text x="16" y="82" font-size="5.5" fill="#94a3b8">😴 8h  ⭐⭐⭐</text>
+              <rect x="8" y="92" width="108" height="36" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="92" width="3" height="36" rx="1.5" fill="#8b5cf6"/>
+              <text x="16" y="106" font-size="7" font-weight="700" fill="#1e293b">Martes 24/06</text>
+              <text x="16" y="116" font-size="6" fill="#64748b">Velocidad · 3.200 m · 75 min</text>
+              <text x="16" y="124" font-size="5.5" fill="#94a3b8">😴 7h  ⭐⭐⭐⭐</text>
+              <rect x="8" y="134" width="108" height="36" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="134" width="3" height="36" rx="1.5" fill="#10b981"/>
+              <text x="16" y="148" font-size="7" font-weight="700" fill="#1e293b">Domingo 22/06</text>
+              <text x="16" y="158" font-size="6" fill="#64748b">Fondo · 5.000 m · 105 min</text>
+              <text x="16" y="166" font-size="5.5" fill="#94a3b8">😴 9h  ⭐⭐⭐⭐⭐</text>
+              <rect x="0" y="195" width="124" height="25" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="15" y="211" text-anchor="middle" font-size="11">🏠</text>
+              <text x="46" y="211" text-anchor="middle" font-size="11" fill="#1e40af">📝</text>
+              <text x="78" y="211" text-anchor="middle" font-size="11">🏆</text>
+              <text x="109" y="211" text-anchor="middle" font-size="11">📈</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Lo que muestra el historial</h4>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt"><strong>Fecha</strong>, tipo, metros totales y duración de cada sesión</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt"><strong>Horas de sueño</strong> y estrellas de <strong>RPE</strong> (esfuerzo percibido)</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Tocá cualquier sesión para ver el <strong>detalle completo</strong> con cada bloque y serie</div></div>
+        <div class="tip-box">
+          <p><strong>Acceso:</strong> En la barra inferior tocá el ícono 📝 <strong>Entrenos</strong>, o desde el panel principal tocá uno de los últimos entrenos listados.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 7: ELEGIR MÉTODO COMPETENCIA -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">7</div>
+    <div class="section-ttl">Cargar competencia — tres métodos</div>
+  </div>
+  <div class="section-body">
+    <div class="tip-grid">
+      <div class="tip-card">
+        <strong>📝 Pegar texto</strong>
+        <span>Copiás el resultado del Meet Mobile y lo pegás. La app detecta prueba, tiempo, parciales y puesto automáticamente.</span>
+      </div>
+      <div class="tip-card">
+        <strong>📷 Foto / Screenshot ⭐ Nuevo</strong>
+        <span>Si el Meet Mobile no te deja copiar texto, sacás captura de pantalla y la Inteligencia Artificial la lee sola.</span>
+      </div>
+      <div class="tip-card">
+        <strong>⊞ Tablero</strong>
+        <span>Completás todos los campos a mano: torneo, prueba, pileta, tiempo, parciales, puesto y sensaciones.</span>
+      </div>
+      <div class="tip-card">
+        <strong>¿Cuál usar?</strong>
+        <span>Si podés copiar → texto. Si no podés copiar → foto. Si querés cargar todo vos mismo → tablero.</span>
+      </div>
+    </div>
+    <div class="step" style="margin-top:10px"><div class="step-n">→</div><div class="step-txt">Desde el panel tocá <strong>Cargar competencia</strong> y elegí el método que más te convenga</div></div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 8: FOTO -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">8</div>
+    <div class="section-ttl">Importar desde foto — con inteligencia artificial</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="38" fill="#1e40af"/>
+              <text x="62" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="white">Importar desde foto</text>
+              <text x="62" y="33" text-anchor="middle" font-size="6" fill="#bfdbfe">Análisis con IA</text>
+              <!-- Upload area -->
+              <rect x="8" y="44" width="108" height="62" rx="8" fill="white" stroke="#3b82f6" stroke-width="1" stroke-dasharray="5 3"/>
+              <rect x="34" y="50" width="56" height="44" rx="6" fill="#f1f5f9"/>
+              <rect x="34" y="50" width="56" height="14" fill="#1e40af" rx="4"/>
+              <text x="62" y="61" text-anchor="middle" font-size="6" fill="white" font-weight="700">Meet Mobile</text>
+              <text x="62" y="74" text-anchor="middle" font-size="6.5" font-weight="800" fill="#1e293b">Diego Centurion</text>
+              <text x="62" y="83" text-anchor="middle" font-size="5.5" fill="#64748b">100m Mariposa</text>
+              <text x="62" y="90" text-anchor="middle" font-size="8" font-weight="900" fill="#1e40af">1:03.16</text>
+              <text x="62" y="100" text-anchor="middle" font-size="5.5" fill="#64748b">Tocá para elegir foto</text>
+              <!-- Analyze button -->
+              <rect x="8" y="114" width="108" height="22" rx="11" fill="#3b82f6"/>
+              <text x="62" y="128" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">🔍 Analizar con IA</text>
+              <!-- Result -->
+              <rect x="8" y="144" width="108" height="66" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+              <text x="14" y="156" font-size="6" font-weight="800" fill="#15803d">✓ DETECTADO POR IA</text>
+              <text x="14" y="168" font-size="5.5" fill="#475569"><tspan font-weight="700">Torneo:</tspan> Metropolitano 2026</text>
+              <text x="14" y="178" font-size="5.5" fill="#475569"><tspan font-weight="700">Prueba:</tspan> 100m Mariposa</text>
+              <text x="14" y="188" font-size="5.5" fill="#475569"><tspan font-weight="700">Tiempo:</tspan> 1:03.16 · 2° puesto</text>
+              <text x="14" y="198" font-size="5" fill="#64748b">30"46 (30"46) ; 32"70 (63"16)</text>
+              <rect x="8" y="214" width="108" height="0" rx="0" fill="none"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Cómo funciona</h4>
+        <div class="step"><div class="step-n">1</div><div class="step-txt">Tocá <strong>Cargar competencia → Foto / Screenshot</strong></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-txt">Tocá el área punteada y elegí la <strong>captura del Meet Mobile</strong> de tu galería</div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-txt">Tocá <strong>Analizar con IA</strong> y esperá unos segundos</div></div>
+        <div class="step"><div class="step-n">4</div><div class="step-txt">Revisá los datos detectados — tocá <strong>Editar</strong> si algo no está bien</div></div>
+        <div class="step"><div class="step-n">5</div><div class="step-txt">Tocá <strong>Guardar marca</strong> — ¡listo!</div></div>
+        <div class="tip-box">
+          <p><strong>¿Qué detecta la IA?</strong> Torneo, prueba (en español), fecha, puesto, pileta, tiempo final y parciales por tramo. Todo automáticamente, sin que tengas que escribir nada.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 9: TEXTO COMPETENCIA -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">9</div>
+    <div class="section-ttl">Importar competencia desde texto</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="38" fill="#1e40af"/>
+              <text x="62" y="22" text-anchor="middle" font-size="8.5" font-weight="900" fill="white">Importar competencia</text>
+              <text x="62" y="33" text-anchor="middle" font-size="6" fill="#bfdbfe">Pegá el texto del resultado</text>
+              <rect x="8" y="44" width="108" height="56" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="14" y="58" font-size="6.5" fill="#1e293b" font-weight="700">Diego Centurion</text>
+              <text x="14" y="68" font-size="6.5" fill="#1e293b">100 Fly</text>
+              <text x="14" y="78" font-size="6.5" fill="#1e293b">1:03.16</text>
+              <text x="14" y="88" font-size="6.5" fill="#64748b">30.46  32.70</text>
+              <text x="14" y="98" font-size="6.5" fill="#64748b">2nd Place</text>
+              <rect x="8" y="108" width="108" height="84" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1.5"/>
+              <text x="14" y="122" font-size="7" font-weight="800" fill="#1e40af">Resultado detectado</text>
+              <text x="14" y="135" font-size="6" fill="#94a3b8">PRUEBA</text>
+              <text x="116" y="135" text-anchor="end" font-size="6.5" font-weight="700" fill="#1e293b">100m Mariposa</text>
+              <text x="14" y="148" font-size="6" fill="#94a3b8">TIEMPO</text>
+              <text x="116" y="148" text-anchor="end" font-size="7.5" font-weight="900" fill="#1e40af">1:03.16</text>
+              <text x="14" y="161" font-size="6" fill="#94a3b8">PUESTO</text>
+              <text x="116" y="161" text-anchor="end" font-size="6.5" font-weight="700" fill="#1e293b">2°</text>
+              <text x="14" y="174" font-size="6" fill="#94a3b8">PILETA</text>
+              <text x="116" y="174" text-anchor="end" font-size="6.5" fill="#1e293b">50m</text>
+              <text x="14" y="184" font-size="5.5" fill="#64748b">30"46 (30"46) ; 32"70 (63"16)</text>
+              <rect x="8" y="198" width="108" height="18" rx="9" fill="#1e40af"/>
+              <text x="62" y="210" text-anchor="middle" font-size="7.5" font-weight="800" fill="white">Guardar marca</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Pasos para importar</h4>
+        <div class="step"><div class="step-n">1</div><div class="step-txt">Abrí el Meet Mobile y buscá tu prueba. Hacé <strong>tap largo</strong> sobre el texto</div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-txt">Seleccioná todo el texto y tocá <strong>Copiar</strong></div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-txt">En SwimTrack tocá <strong>Cargar competencia → Pegar texto</strong></div></div>
+        <div class="step"><div class="step-n">4</div><div class="step-txt">Pegá el texto y revisá el resultado detectado automáticamente</div></div>
+        <div class="step"><div class="step-n">5</div><div class="step-txt">Tocá <strong>Guardar marca</strong></div></div>
+        <div class="tip-box">
+          <p><strong>Compatibilidad:</strong> el parser entiende el formato de Meet Mobile (pruebas en inglés como "100 Fly", "50 Free") y los convierte automáticamente al español.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 10: MIS MARCAS -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">10</div>
+    <div class="section-ttl">Mis marcas</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="42" fill="#1e40af"/>
+              <text x="62" y="18" text-anchor="middle" font-size="9" font-weight="900" fill="white">Mis Marcas</text>
+              <text x="62" y="32" text-anchor="middle" font-size="6" fill="#bfdbfe">24 competencias · 8 pruebas</text>
+              <rect x="8" y="48" width="108" height="12" rx="4" fill="#dbeafe"/>
+              <text x="14" y="57" font-size="6" font-weight="800" fill="#1e3a8a">100m Mariposa</text>
+              <text x="116" y="57" text-anchor="end" font-size="5.5" fill="#3b82f6">mejor: 1:03.16 ★</text>
+              <rect x="8" y="62" width="108" height="32" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="62" width="2.5" height="32" rx="1" fill="#1e40af"/>
+              <text x="17" y="74" font-size="6.5" font-weight="700" fill="#1e293b">Metropolitano 2026</text>
+              <text x="17" y="84" font-size="5.5" fill="#64748b">27/06 · 50m · 2° puesto</text>
+              <text x="17" y="90" font-size="5" fill="#94a3b8">30"46 (30"46) ; 32"70 (63"16)</text>
+              <text x="116" y="75" text-anchor="end" font-size="8.5" font-weight="900" fill="#1e40af">1:03.16</text>
+              <rect x="8" y="100" width="108" height="32" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="100" width="2.5" height="32" rx="1" fill="#94a3b8"/>
+              <text x="17" y="112" font-size="6.5" font-weight="700" fill="#1e293b">Nacional Juvenil 2025</text>
+              <text x="17" y="122" font-size="5.5" fill="#64748b">15/11 · 50m · 3° puesto</text>
+              <text x="116" y="113" text-anchor="end" font-size="8.5" font-weight="700" fill="#94a3b8">1:04.30</text>
+              <rect x="8" y="138" width="108" height="12" rx="4" fill="#dbeafe"/>
+              <text x="14" y="147" font-size="6" font-weight="800" fill="#1e3a8a">50m Mariposa</text>
+              <text x="116" y="147" text-anchor="end" font-size="5.5" fill="#3b82f6">mejor: 27"84 ★</text>
+              <rect x="8" y="152" width="108" height="32" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <rect x="8" y="152" width="2.5" height="32" rx="1" fill="#f59e0b"/>
+              <text x="17" y="164" font-size="6.5" font-weight="700" fill="#1e293b">Metropolitano 2026</text>
+              <text x="17" y="174" font-size="5.5" fill="#64748b">25/06 · 50m · 1° puesto 🥇</text>
+              <text x="116" y="165" text-anchor="end" font-size="8.5" font-weight="900" fill="#1e40af">27"84</text>
+              <rect x="0" y="197" width="124" height="23" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="15" y="212" text-anchor="middle" font-size="11">🏠</text>
+              <text x="46" y="212" text-anchor="middle" font-size="11">📝</text>
+              <text x="78" y="212" text-anchor="middle" font-size="11" fill="#1e40af">🏆</text>
+              <text x="109" y="212" text-anchor="middle" font-size="11">📈</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Lo que muestra "Mis marcas"</h4>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Resultados <strong>agrupados por prueba</strong>: 100m Mariposa, 50m Crol, etc.</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Para cada competencia: <strong>torneo, fecha, pileta, puesto y tiempo</strong></div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt"><strong>Parciales por tramo y acumulados:</strong> <code>30"46 (30"46) ; 32"70 (63"16)</code></div></div>
+        <div class="step"><div class="step-n g">★</div><div class="step-txt">La <strong>mejor marca</strong> de cada prueba aparece resaltada en azul con estrella</div></div>
+        <div class="tip-box">
+          <p><strong>Cómo leer los parciales:</strong> <code>30"46 (30"46)</code> = primer tramo 30.46", acumulado 30.46". El número entre paréntesis siempre es el tiempo desde la largada.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- SECCIÓN 11: MI EVOLUCIÓN -->
+<!-- ──────────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-num">11</div>
+    <div class="section-ttl">Mi evolución — gráfico de progreso</div>
+  </div>
+  <div class="section-body">
+    <div class="row-2col">
+      <div class="col-phone">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <svg viewBox="0 0 124 220" xmlns="http://www.w3.org/2000/svg">
+              <rect width="124" height="220" fill="#f8fafc"/>
+              <rect width="124" height="38" fill="#1e40af"/>
+              <text x="62" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="white">Mi Evolución</text>
+              <text x="62" y="33" text-anchor="middle" font-size="6" fill="#bfdbfe">Progreso en cada prueba</text>
+              <rect x="8" y="44" width="108" height="18" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1.5"/>
+              <text x="14" y="56" font-size="7" fill="#1e293b">100m Mariposa</text>
+              <text x="112" y="56" text-anchor="end" font-size="9" fill="#64748b">▾</text>
+              <rect x="8" y="68" width="108" height="90" rx="7" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="12" y="83" font-size="5" fill="#94a3b8">1:05</text>
+              <text x="12" y="103" font-size="5" fill="#94a3b8">1:04</text>
+              <text x="12" y="123" font-size="5" fill="#94a3b8">1:03</text>
+              <text x="12" y="143" font-size="5" fill="#94a3b8">1:02</text>
+              <line x1="26" y1="81" x2="112" y2="81" stroke="#f1f5f9" stroke-width=".6"/>
+              <line x1="26" y1="101" x2="112" y2="101" stroke="#f1f5f9" stroke-width=".6"/>
+              <line x1="26" y1="121" x2="112" y2="121" stroke="#f1f5f9" stroke-width=".6"/>
+              <line x1="26" y1="141" x2="112" y2="141" stroke="#f1f5f9" stroke-width=".6"/>
+              <polygon points="30,128 47,124 64,118 81,114 99,110 112,106 112,148 30,148" fill="#3b82f6" fill-opacity=".08"/>
+              <polyline points="30,128 47,124 64,118 81,114 99,110 112,106" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="30" cy="128" r="2.5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="47" cy="124" r="2.5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="64" cy="118" r="2.5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="81" cy="114" r="2.5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="99" cy="110" r="2.5" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+              <circle cx="112" cy="106" r="4" fill="#3b82f6"/>
+              <text x="112" y="101" text-anchor="middle" font-size="5.5" fill="#1e40af" font-weight="800">1:03.16</text>
+              <rect x="8" y="164" width="50" height="28" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="33" y="177" text-anchor="middle" font-size="8" font-weight="900" fill="#10b981">-1.24"</text>
+              <text x="33" y="187" text-anchor="middle" font-size="5.5" fill="#64748b">Mejora total</text>
+              <rect x="66" y="164" width="50" height="28" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="91" y="177" text-anchor="middle" font-size="8" font-weight="900" fill="#1e293b">6</text>
+              <text x="91" y="187" text-anchor="middle" font-size="5.5" fill="#64748b">carreras</text>
+              <rect x="8" y="198" width="108" height="18" rx="6" fill="#fef3c7" stroke="#fde68a" stroke-width="1"/>
+              <text x="62" y="210" text-anchor="middle" font-size="6" font-weight="800" fill="#92400e">🏆 Mejor: 1:03.16 — Jun'26</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="col-text">
+        <h4>Cómo leer el gráfico</h4>
+        <div class="step"><div class="step-n g">↓</div><div class="step-txt">La línea <strong>baja</strong> cuando mejorás — menos segundos = más rápido</div></div>
+        <div class="step"><div class="step-n g">✓</div><div class="step-txt">Cambiá de prueba con el <strong>selector</strong> de arriba del gráfico</div></div>
+        <div class="step"><div class="step-n g">★</div><div class="step-txt">Muestra tu <strong>mejora total</strong>, cantidad de competencias y <strong>mejor marca</strong></div></div>
+        <div class="step"><div class="step-n g">📈</div><div class="step-txt">Accedé desde el ícono 📈 en la barra inferior</div></div>
+        <div class="tip-box">
+          <p><strong>¿Cuándo aparece el gráfico?</strong> Cuando tenés al menos 2 competencias registradas de la misma prueba. Con más datos, el gráfico se vuelve más preciso.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CIERRE -->
+<div class="final">
+  <h2>🏆 ¡Ya sabés todo!</h2>
+  <p>Ahora es tu turno — entrá a la app y empezá a registrar tus entrenamientos y marcas.</p>
+  <a href="https://swimtrack-5r6.pages.dev" class="url-big">Abrir SwimTrack →</a>
+</div>
+
+</div><!-- end page -->
+</body>
+</html>
