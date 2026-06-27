@@ -19,7 +19,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 /* VIEWPORT */
 .vp{position:fixed;top:52px;left:0;right:0;bottom:68px;overflow:hidden}
 .track{display:flex;height:100%;transition:transform .45s cubic-bezier(.4,0,.2,1);will-change:transform}
-.slide{min-width:100vw;height:100%;display:flex;flex-direction:column;align-items:center;padding:18px 16px 12px;overflow-y:auto;-webkit-overflow-scrolling:touch;gap:0}
+.slide{min-width:100vw;height:100%;display:flex;flex-direction:column;align-items:center;padding:18px 16px 12px;overflow-y:auto;gap:0}
 
 /* TYPOGRAPHY */
 .badge{display:inline-flex;align-items:center;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#93c5fd;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);padding:3px 10px;border-radius:50px;margin-bottom:10px}
@@ -1001,18 +1001,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <!-- NAV BAR -->
 <div class="navb">
-  <button class="btn bprev" id="bp" onclick="go(-1)">← Atrás</button>
-  <button class="btn bnext" id="bn" onclick="go(1)">Siguiente →</button>
+  <button class="btn bprev" id="bp">← Atrás</button>
+  <button class="btn bnext" id="bn">Siguiente →</button>
 </div>
 <div class="kbh">← → para navegar</div>
 
 <script>
-const tr=document.getElementById('tr'),bp=document.getElementById('bp'),bn=document.getElementById('bn'),pf=document.getElementById('pf'),cn=document.getElementById('cn');
+const tr=document.getElementById('tr'),bp=document.getElementById('bp'),bn=document.getElementById('bn'),pf=document.getElementById('pf'),cn=document.getElementById('cn'),vp=document.querySelector('.vp');
 const slides=document.querySelectorAll('.slide'),N=slides.length;
 let cur=0;
 document.getElementById('tn').textContent=N;
 function upd(){
-  tr.style.transform='translateX(-'+(cur*100)+'vw)';
+  tr.style.transform='translateX(-'+(cur*window.innerWidth)+'px)';
   pf.style.width=((cur+1)/N*100)+'%';
   cn.textContent=cur+1;
   bp.style.visibility=cur===0?'hidden':'visible';
@@ -1025,10 +1025,13 @@ function go(d){
   if(nx>=0&&nx<N){cur=nx;upd();}
   else if(d>0&&cur===N-1){window.open('https://swimtrack-5r6.pages.dev','_blank');}
 }
+bp.addEventListener('click',()=>go(-1));
+bn.addEventListener('click',()=>go(1));
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);});
 let sx=0,sy=0;
-document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
-document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>36)go(dx<0?1:-1);},{passive:true});
+vp.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+vp.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)go(dx<0?1:-1);},{passive:true});
+window.addEventListener('resize',upd);
 upd();
 </script>
 </body>
