@@ -24,6 +24,7 @@ export interface ParsedSet {
   metros:          number          // metrosPorRound * rounds (detectado)
   intervaloSeg:    number | null   // salida/descanso entre reps, si se detectó
   intervaloTexto:  string          // "1:30", "0:45", etc. (vacío si no hay)
+  tipoIntervalo:   'salida' | 'fijo'  // @=salida cada X; c/=descanso fijo de X
   descansoSeg:     number          // descanso entre series (triples) o extra "+50s"
   descansoTexto:   string          // descanso entre series (display, para triples)
   tiempoPromedio:  number          // promedio de los tiempos por repetición (0 si no hay)
@@ -215,12 +216,21 @@ function detectarIntensidad(texto: string): string {
   return ''
 }
 
-// Busca un intervalo en la línea: "@1'30s" / "c/1'30s", "@50s" / "c/50s", "@2"
-function extraerIntervalo(texto: string): { seg: number | null; txt: string } {
-  const m = texto.match(/(?:@|c\/)\s*([\d'′:."s]+)/i)
-  if (!m) return { seg: null, txt: '' }
-  const seg = parseIntervalo(m[1])
-  return { seg, txt: seg !== null ? segundosATexto(seg) : '' }
+// Busca un intervalo en la línea.
+// @X  = salida cada X (intervalo total, incluye el nado)
+// c/X = descanso fijo de X (solo el descanso, sin el nado)
+function extraerIntervalo(texto: string): { seg: number | null; txt: string; tipo: 'salida' | 'fijo' } {
+  const mc = texto.match(/c\/\s*([\d'′:."s]+)/i)
+  if (mc) {
+    const seg = parseIntervalo(mc[1])
+    return { seg, txt: seg !== null ? segundosATexto(seg) : '', tipo: 'fijo' }
+  }
+  const ma = texto.match(/@\s*([\d'′:."s]+)/i)
+  if (ma) {
+    const seg = parseIntervalo(ma[1])
+    return { seg, txt: seg !== null ? segundosATexto(seg) : '', tipo: 'salida' }
+  }
+  return { seg: null, txt: '', tipo: 'salida' }
 }
 
 // Busca descanso extra: "+50s", "+ 1'", "con 30s"
@@ -302,7 +312,7 @@ export function parseWorkout(texto: string, opts: ParseOptions = {}): ParseResul
         if (mS) { reps = parseInt(mS[1]); dist = parseFloat(mS[2].replace(',', '.')) }
         else { const mD = parteStr.match(/\b(\d{1,4})\b/); if (mD) dist = parseInt(mD[1]) }
         if (dist <= 0) continue
-        const { seg: intervaloSeg, txt: intervaloTexto } = extraerIntervalo(parteStr)
+        const { seg: intervaloSeg, txt: intervaloTexto, tipo: tipoIntervalo } = extraerIntervalo(parteStr)
         const tiemposP = extraerTiempos(parteStr)
         const { prom, mejor, peor } = resumirTiempos(tiemposP)
         const metrosPorRound   = Math.round(series * reps * dist)
@@ -314,7 +324,7 @@ export function parseWorkout(texto: string, opts: ParseOptions = {}): ParseResul
           metrosPorRound, segundosPorRound,
           metros: metrosPorRound * rounds,
           segundos: segundosPorRound * rounds,
-          intervaloSeg: intervaloSeg || null, intervaloTexto,
+          intervaloSeg: intervaloSeg || null, intervaloTexto, tipoIntervalo,
           descansoSeg: 0, descansoTexto: '',
           tiempoPromedio: prom, mejorTiempo: mejor, peorTiempo: peor, tiempos: tiemposP,
           estilo: detectarEstilo(parteStr),
@@ -352,7 +362,7 @@ export function parseWorkout(texto: string, opts: ParseOptions = {}): ParseResul
         metrosPorRound, segundosPorRound,
         metros: metrosPorRound * rounds,
         segundos: segundosPorRound * rounds,
-        intervaloSeg: innerSeg || null, intervaloTexto: innerTxt,
+        intervaloSeg: innerSeg || null, intervaloTexto: innerTxt, tipoIntervalo: 'salida',
         descansoSeg: outerSeg, descansoTexto: outerTxt,
         tiempoPromedio: prom, mejorTiempo: mejor, peorTiempo: peor, tiempos: tiemposT,
         estilo: detectarEstilo(linea),
@@ -371,23 +381,26 @@ export function parseWorkout(texto: string, opts: ParseOptions = {}): ParseResul
       const reps = parseInt(mSet[1])
       const dist = parseFloat(mSet[2].replace(',', '.'))
       const rounds = roundPendiente
-      const { seg: intervaloSeg, txt: intervaloTexto } = extraerIntervalo(linea)
+      const { seg: intervaloSeg, txt: intervaloTexto, tipo: tipoIntervalo } = extraerIntervalo(linea)
       const descansoSeg = extraerDescanso(linea)
       const restoSet = linea.slice((mSet.index ?? 0) + mSet[0].length)
       const tiemposS = extraerTiempos(restoSet)
       const { prom, mejor, peor } = resumirTiempos(tiemposS)
       const metrosPorRound = Math.round(reps * dist)
+      const swimPerRep = (dist / 100) * ritmoPer100
 
       const segundosPorRound = intervaloSeg
-        ? reps * intervaloSeg + descansoSeg
-        : (reps * dist) / 100 * ritmoPer100 + descansoSeg * reps
+        ? (tipoIntervalo === 'fijo'
+          ? reps * (swimPerRep + intervaloSeg) + descansoSeg
+          : reps * intervaloSeg + descansoSeg)
+        : reps * swimPerRep + descansoSeg * reps
 
       sets.push({
         raw: linea, reps, distancia: dist, series: 1, rounds, bloqueId: bloqueActual,
         metrosPorRound, segundosPorRound: Math.round(segundosPorRound),
         metros: metrosPorRound * rounds,
         segundos: Math.round(segundosPorRound) * rounds,
-        intervaloSeg, intervaloTexto, descansoSeg, descansoTexto: '',
+        intervaloSeg, intervaloTexto, tipoIntervalo, descansoSeg, descansoTexto: '',
         tiempoPromedio: prom, mejorTiempo: mejor, peorTiempo: peor, tiempos: tiemposS,
         estilo: detectarEstilo(linea),
         materiales: detectarMateriales(linea),
@@ -412,7 +425,7 @@ export function parseWorkout(texto: string, opts: ParseOptions = {}): ParseResul
           metrosPorRound: dist, segundosPorRound,
           metros: dist * rounds,
           segundos: segundosPorRound * rounds,
-          intervaloSeg: null, intervaloTexto: '', descansoSeg: 0, descansoTexto: '',
+          intervaloSeg: null, intervaloTexto: '', tipoIntervalo: 'salida', descansoSeg: 0, descansoTexto: '',
           tiempoPromedio: 0, mejorTiempo: 0, peorTiempo: 0, tiempos: [],
           estilo: detectarEstilo(linea),
           materiales: detectarMateriales(linea),

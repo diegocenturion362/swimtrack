@@ -160,6 +160,7 @@ export function ImportWorkout({ mode }: Props) {
         series:            s.series,
         estilo:            s.estilo,
         intervaloSalida:   s.intervaloTexto,
+        tipoIntervaloReps: s.intervaloTexto ? s.tipoIntervalo : undefined,
         descanso:          s.descansoTexto,
         tiempoPromedio:    s.tiempoPromedio,
         mejorTiempo:       s.mejorTiempo,
@@ -348,7 +349,7 @@ export function ImportWorkout({ mode }: Props) {
                               <span className="text-slate-400 text-xs">{strokeLabel[s.estilo]}</span>
                               {s.intervaloTexto && (
                                 <span className="text-[11px] text-slate-400">
-                                  @{s.intervaloTexto}{s.descansoTexto ? ` / ${s.descansoTexto}` : ''}
+                                  {s.tipoIntervalo === 'fijo' ? 'c/' : '@'}{s.intervaloTexto}{s.descansoTexto ? ` / ${s.descansoTexto}` : ''}
                                 </span>
                               )}
                               {s.intensidad && <span className="text-[10px] text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">{s.intensidad}</span>}

@@ -39,9 +39,7 @@ interface BloqueForm {
   id:              string
   series:          string
   descSeries:      string
-  serieUnit:       's' | 'min'          // unidad del descanso entre series
-  tipoDescSeries:  'salida' | 'fijo'   // tipo de descanso entre series
-  repUnit:         's' | 'min'          // unidad del descanso entre reps (todas las partes)
+  tipoDescSeries:  'salida' | 'fijo'
   partes:          ParteForm[]
 }
 
@@ -54,7 +52,7 @@ const nuevaParte = (): ParteForm => ({
 const nuevoBloque = (): BloqueForm => ({
   id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
   series: '', descSeries: '',
-  serieUnit: 'min', tipoDescSeries: 'salida', repUnit: 's',
+  tipoDescSeries: 'salida',
   partes: [nuevaParte()],
 })
 
@@ -65,12 +63,15 @@ function mmssToSeg(txt: string): number {
   const p = txt.split(':')
   return p.length === 2 ? (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0) : parseFloat(txt) || 0
 }
-const restoEnSeg = (val: string, unit: 's' | 'min') => {
-  const n = parseFloat(val) || 0
-  return unit === 'min' ? n * 60 : n
+function formatRest(seg: number): string {
+  if (!seg || seg <= 0) return ''
+  const m = Math.floor(seg / 60)
+  const s = Math.round(seg % 60)
+  return m > 0 ? `${m}'${String(s).padStart(2, '0')}"` : `${s}"`
 }
-const restoTexto = (val: string, unit: 's' | 'min') => {
-  const seg = Math.round(restoEnSeg(val, unit))
+const restoEnSeg = (val: string) => parseRepTime(val)
+const restoTexto = (val: string) => {
+  const seg = Math.round(parseRepTime(val))
   if (seg <= 0) return ''
   return `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
 }
@@ -115,7 +116,7 @@ function parteDeSet(set: TrainingSet): ParteForm {
     estilo:       set.estilo,
     reps:         String(set.repeticiones),
     distancia:    String(set.distancia),
-    descReps:     set.intervaloSalida ? String(mmssToSeg(set.intervaloSalida)) : '',
+    descReps:     set.intervaloSalida ? formatRest(mmssToSeg(set.intervaloSalida)) : '',
     tipoDescReps: set.tipoIntervaloReps ?? 'salida',
     materiales:   set.materiales ?? [],
     tiempos,
@@ -133,14 +134,11 @@ function bloquesDeSets(editSets: TrainingSet[]): BloqueForm[] {
   })
   return Array.from(grupos.entries()).map(([g, sets]) => {
     const first = sets[0]
-    const minSeries = first.descanso ? mmssToSeg(first.descanso) / 60 : 0
     return {
       id:             `b-${g}`,
       series:         String(first.series ?? 1),
-      descSeries:     minSeries ? String(Math.round(minSeries * 100) / 100) : '',
-      serieUnit:      'min' as const,
+      descSeries:     first.descanso ? formatRest(mmssToSeg(first.descanso)) : '',
       tipoDescSeries: (first.tipoDescansoSeries ?? 'salida') as 'salida' | 'fijo',
-      repUnit:        's' as const,
       partes:         sets.map(parteDeSet),
     }
   })
@@ -235,11 +233,11 @@ export function BoardTraining({ mode }: Props) {
       let porSerie = 0
       for (const p of b.partes) {
         const m = metricasParte(p, S)
-        const dr = restoEnSeg(p.descReps, b.repUnit)
+        const dr = restoEnSeg(p.descReps)
         const nado = m.tiempos.length ? (m.prom * S * m.R) : (m.dist / 100 * 100) * S * m.R
         porSerie += nado + S * m.R * dr
       }
-      seg += porSerie + Math.max(0, S - 1) * restoEnSeg(b.descSeries, b.serieUnit)
+      seg += porSerie + Math.max(0, S - 1) * restoEnSeg(b.descSeries)
     }
     return Math.round(seg / 60)
   }, [bloques])
@@ -272,7 +270,7 @@ export function BoardTraining({ mode }: Props) {
       b.partes.forEach((p, pi) => {
         const m = metricasParte(p, S)
         if (m.metros <= 0) return
-        const intervalo = restoTexto(p.descReps, b.repUnit)
+        const intervalo = restoTexto(p.descReps)
         const clave = buildSimilarityKey(m.R, m.dist, p.estilo, pileta, intervalo)
         const grid: number[][] = []
         for (let s = 0; s < S; s++) {
@@ -281,7 +279,7 @@ export function BoardTraining({ mode }: Props) {
           grid.push(fila)
         }
         const hayTiempos = grid.some(f => f.some(t => t > 0))
-        const descansoSeries = restoTexto(b.descSeries, b.serieUnit)
+        const descansoSeries = restoTexto(b.descSeries)
         const set: TrainingSet = {
           id: `set-${sessionId}-${bi}-${pi}`,
           trainingSessionId: sessionId,
@@ -542,7 +540,6 @@ function BloqueCard({
   const metros = metrosBloque(b)
   const variasPartes = b.partes.length > 1
   const distLabel = distUnit === 'yd' ? 'yd' : 'm'
-  const serieLabel = b.serieUnit === 'min' ? 'min' : 'seg'
 
   return (
     <Card padding="sm" className="border-blue-100">
@@ -554,46 +551,19 @@ function BloqueCard({
       {/* Series del trabajo */}
       <div className="grid grid-cols-2 gap-2 mb-2">
         <Mini label="Series (repite el trabajo)" value={b.series} onChange={v => onUpdate({ series: v })} placeholder="2" />
-        <Mini label={`Desc. e/ series (${serieLabel})`} value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder="0" />
+        <Mini label="Desc. e/ series" value={b.descSeries} onChange={v => onUpdate({ descSeries: v })} placeholder={`1'00"`} inputMode="text" />
       </div>
 
-      {/* Controles de descanso entre series */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex gap-1 flex-1">
-          <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'salida' })}
-            className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.tipoDescSeries !== 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>Salida cada</button>
-          <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'fijo' })}
-            className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.tipoDescSeries === 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>Desc. fijo</button>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          <button type="button" onClick={() => onUpdate({ serieUnit: 's' })}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.serieUnit === 's' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>seg</button>
-          <button type="button" onClick={() => onUpdate({ serieUnit: 'min' })}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.serieUnit === 'min' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>min</button>
-        </div>
-      </div>
-
-      {/* Unidad para descanso entre reps (aplica a todas las partes) */}
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-        <span className="text-[11px] text-slate-500 shrink-0">Desc. e/ reps:</span>
-        <div className="flex gap-1">
-          <button type="button" onClick={() => onUpdate({ repUnit: 's' })}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.repUnit === 's' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>seg</button>
-          <button type="button" onClick={() => onUpdate({ repUnit: 'min' })}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-              b.repUnit === 'min' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>min</button>
-        </div>
+      {/* Tipo de descanso entre series */}
+      <div className="flex gap-1 mb-3 pb-2 border-b border-slate-100">
+        <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'salida' })}
+          className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+            b.tipoDescSeries !== 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+          }`}>Salida cada</button>
+        <button type="button" onClick={() => onUpdate({ tipoDescSeries: 'fijo' })}
+          className={`flex-1 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+            b.tipoDescSeries === 'fijo' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+          }`}>Desc. fijo</button>
       </div>
 
       {/* Partes */}
@@ -605,7 +575,7 @@ function BloqueCard({
             idx={pi}
             series={S}
             mostrarTitulo={variasPartes}
-            distUnit={distUnit} repUnit={b.repUnit}
+            distUnit={distUnit}
             onUpdate={patch => onUpdateParte(p.id, patch)}
             onTiempo={(s, r, v) => onTiempo(p.id, s, r, v)}
             onRemove={() => onRemoveParte(p.id)}
@@ -634,25 +604,21 @@ function BloqueCard({
 // ─── Una parte dentro de un Trabajo ──────────────────────────────────────────────
 
 function ParteRow({
-  parte: p, idx, series: S, mostrarTitulo, distUnit, repUnit,
+  parte: p, idx, series: S, mostrarTitulo, distUnit,
   onUpdate, onTiempo, onRemove,
 }: {
   parte: ParteForm
   idx: number
   series: number
   mostrarTitulo: boolean
-  distUnit: 'm' | 'yd'; repUnit: 's' | 'min'
+  distUnit: 'm' | 'yd'
   onUpdate: (patch: Partial<ParteForm>) => void
   onTiempo: (s: number, r: number, v: string) => void
   onRemove: () => void
 }) {
-  const numLabel = (u: 'm' | 'yd' | 's' | 'min') => ({ m: 'm', yd: 'yd', s: 'seg', min: 'min' }[u])
   const m = metricasParte(p, S)
-
-  const descLabel = p.tipoDescReps === 'fijo'
-    ? `Desc. fijo (${numLabel(repUnit)})`
-    : `Salida cada (${numLabel(repUnit)})`
-  const descPlaceholder = p.tipoDescReps === 'fijo' ? '30' : '90'
+  const descLabel = p.tipoDescReps === 'fijo' ? 'Desc. fijo' : 'Salida cada'
+  const descPlaceholder = p.tipoDescReps === 'fijo' ? '30"' : `1'30"`
 
   return (
     <div className={mostrarTitulo ? 'rounded-xl border border-slate-100 p-2.5' : ''}>
@@ -689,8 +655,8 @@ function ParteRow({
 
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Reps" value={p.reps} onChange={v => onUpdate({ reps: v })} placeholder="5" />
-        <Mini label={`Dist. (${numLabel(distUnit)})`} value={p.distancia} onChange={v => onUpdate({ distancia: v })} placeholder="10" />
-        <Mini label={descLabel} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder={descPlaceholder} />
+        <Mini label={`Dist. (${distUnit})`} value={p.distancia} onChange={v => onUpdate({ distancia: v })} placeholder="50" />
+        <Mini label={descLabel} value={p.descReps} onChange={v => onUpdate({ descReps: v })} placeholder={descPlaceholder} inputMode="text" />
       </div>
 
       <div className="mt-2">
@@ -747,15 +713,16 @@ function ParteRow({
   )
 }
 
-function Mini({ label, value, onChange, placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string
+function Mini({ label, value, onChange, placeholder, inputMode = 'decimal' }: {
+  label: string; value: string; onChange: (v: string) => void
+  placeholder?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
   return (
     <div>
       <label className="text-[11px] font-semibold text-slate-500 block mb-1 leading-tight">{label}</label>
       <input
         value={value} onChange={e => onChange(e.target.value)}
-        inputMode="decimal" placeholder={placeholder}
+        inputMode={inputMode} placeholder={placeholder}
         className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
