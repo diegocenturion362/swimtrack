@@ -82,9 +82,6 @@ export function ImportWorkout({ mode }: Props) {
   // Resetear elecciones de rounds al cambiar el texto
   useEffect(() => { setRoundsElegidos({}) }, [texto])
 
-  // Sincronizar tipo con la detección automática (salvo que el usuario lo cambie)
-  useEffect(() => { setTipo(tipoAuto) }, [tipoAuto])
-
   // Si el texto trae una fecha y el usuario no la tocó manualmente, la usamos
   useEffect(() => {
     if (parsed.fecha && !fechaTocada) setFecha(parsed.fecha)
@@ -136,6 +133,9 @@ export function ImportWorkout({ mode }: Props) {
     if (ints.length > 0 && ints.every(i => i.includes('a1') || i === '')) return 'aeróbico'
     return 'mixto'
   }, [parsed.sets])
+
+  // Sincronizar tipo con la detección automática (salvo que el usuario lo cambie)
+  useEffect(() => { setTipo(tipoAuto) }, [tipoAuto])
 
   // ── Guardar ──────────────────────────────────────────────────────────────────
   const handleSave = () => {
