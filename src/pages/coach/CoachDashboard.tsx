@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles, Link2, X
+  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles, Link2, X, Share2,
 } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
@@ -11,6 +11,7 @@ import { StatusBadge } from '../../components/ui/Badge'
 import { useStore } from '../../store/useStore'
 import { detectSwimmerStatus, computeAlerts } from '../../utils/swimmerStatus'
 import { relativeDate, formatTime } from '../../utils/timeUtils'
+import { generateCoachWeekSummary, shareOrCopy } from '../../utils/weekSummary'
 import type { SwimmerStatus } from '../../types'
 
 export function CoachDashboard() {
@@ -29,6 +30,18 @@ export function CoachDashboard() {
   const [vinculandoError,  setVinculandoError]  = useState('')
   const [vinculandoNombre, setVinculandoNombre] = useState('')
   const [vinculandoLoad,   setVinculandoLoad]   = useState(false)
+  const [shareFeedback,    setShareFeedback]    = useState('')
+
+  async function handleShareWeek() {
+    try {
+      const text   = generateCoachWeekSummary(swimmers, sessions)
+      const result = await shareOrCopy(text)
+      if (result === 'copied') {
+        setShareFeedback('¡Copiado!')
+        setTimeout(() => setShareFeedback(''), 2500)
+      }
+    } catch {}
+  }
 
   async function handleVincular(e: React.FormEvent) {
     e.preventDefault()
@@ -96,7 +109,17 @@ export function CoachDashboard() {
       />
       <PageLayout>
 
-        {/* Stats */}
+        {/* Stats + F6 compartir */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Resumen de la semana</p>
+          <button
+            onClick={handleShareWeek}
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg active:scale-95 transition-transform"
+          >
+            <Share2 size={12} />
+            {shareFeedback || 'Compartir semana'}
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-3 mb-5">
           <StatCard icon={<Users size={18} />}     label="Nadadores activos" value={swimmers.length} color="blue" />
           <StatCard icon={<Activity size={18} />}  label="Sesiones esta semana" value={thisWeek.length} color="slate" />

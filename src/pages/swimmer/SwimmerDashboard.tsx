@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight, Bell, X } from 'lucide-react'
+import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight, Bell, X, Share2 } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -10,7 +10,8 @@ import { EditObjective } from '../../components/swimmers/EditObjective'
 import { VolumeBarChart } from '../../components/charts/VolumeBarChart'
 import { useStore } from '../../store/useStore'
 import { detectSwimmerStatus, computeAlerts, weeklyVolume } from '../../utils/swimmerStatus'
-import { formatTime, relativeDate } from '../../utils/timeUtils'
+import { formatTime, relativeDate, todayISO } from '../../utils/timeUtils'
+import { generateSwimmerWeekSummary, shareOrCopy } from '../../utils/weekSummary'
 
 // ── Helpers localStorage para F2 ─────────────────────────────────────────────
 function getSeenComments(swimmerId: string): Set<string> {
@@ -34,6 +35,7 @@ export function SwimmerDashboard() {
 
   const [seenIds, setSeenIds] = useState<Set<string>>(() => getSeenComments(id ?? ''))
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [shareFeedback, setShareFeedback] = useState('')
 
   const swimmer = swimmers.find(s => s.id === id)
   if (!swimmer) return <div className="p-8 text-center text-slate-400">Nadador no encontrado</div>
@@ -74,6 +76,21 @@ export function SwimmerDashboard() {
   const coachComments = swSessions
     .filter(s => s.comentarioEntrenador)
     .slice(0, 3)
+
+  // F3: sesión de hoy
+  const todaySession = swSessions.find(s => s.fecha === todayISO())
+
+  // F6: compartir semana
+  async function handleShare() {
+    if (!swimmer) return
+    try {
+      const result = await shareOrCopy(generateSwimmerWeekSummary(swimmer, swSessions))
+      if (result === 'copied') {
+        setShareFeedback('¡Copiado!')
+        setTimeout(() => setShareFeedback(''), 2500)
+      }
+    } catch {}
+  }
 
   // F2: comentarios que el nadador todavía no vio
   const unseenComments = coachComments.filter(s => !seenIds.has(s.id))
@@ -117,6 +134,41 @@ export function SwimmerDashboard() {
               <X size={16} />
             </button>
           </div>
+        )}
+
+        {/* F3 — Vista de hoy */}
+        {todaySession ? (
+          <Card className="mb-4 bg-emerald-50 border border-emerald-200 fade-in">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Hoy entrenaste</p>
+                <p className="text-sm font-bold text-slate-800 capitalize">{todaySession.tipoEntrenamiento}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-bold text-slate-800">{(todaySession.volumenTotal / 1000).toFixed(1)} km</p>
+                <p className="text-xs text-slate-500">
+                  RPE {todaySession.rpe} · {feelingEmoji[todaySession.sensacionGeneral]}
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <Card className="mb-4 border border-dashed border-slate-200 bg-slate-50/50 fade-in">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hoy</p>
+                <p className="text-sm text-slate-500">Sin entreno registrado</p>
+              </div>
+              <Link
+                to={`/nadador/${id}/registrar`}
+                className="shrink-0 text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg"
+              >
+                Registrar →
+              </Link>
+            </div>
+          </Card>
         )}
 
         {/* Hero card */}
@@ -188,11 +240,21 @@ export function SwimmerDashboard() {
         {/* Editar objetivo */}
         <EditObjective swimmer={swimmer} />
 
-        {/* Stats de esta semana */}
+        {/* Stats de esta semana + F6 compartir */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Esta semana</p>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg active:scale-95 transition-transform"
+          >
+            <Share2 size={12} />
+            {shareFeedback || 'Compartir'}
+          </button>
+        </div>
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <MiniStat icon={<Droplets size={14} />} label="Volumen semana" value={`${(weekVol / 1000).toFixed(1)} km`} />
-          <MiniStat icon={<Calendar size={14} />}    label="Sesiones"      value={`${thisWeek.length}`} />
-          <MiniStat icon={<TrendingUp size={14} />}  label="RPE prom."     value={String(avgRPE)} />
+          <MiniStat icon={<Droplets size={14} />} label="Volumen" value={`${(weekVol / 1000).toFixed(1)} km`} />
+          <MiniStat icon={<Calendar size={14} />}  label="Sesiones" value={`${thisWeek.length}`} />
+          <MiniStat icon={<TrendingUp size={14} />} label="RPE prom." value={String(avgRPE)} />
         </div>
 
         {/* Alertas */}
