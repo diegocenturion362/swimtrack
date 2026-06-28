@@ -269,7 +269,85 @@ export function ImportWorkout({ mode }: Props) {
           />
         </div>
 
-        {/* Resultado en vivo */}
+        {/* Datos de la sesión — siempre visibles */}
+        <div className="mt-5 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Fecha">
+              <Input type="date" value={fecha}
+                onChange={e => { setFecha(e.target.value); setFechaTocada(true) }} />
+            </Field>
+            <Field label="Pileta">
+              <PoolToggle value={pileta} onChange={setPileta} />
+            </Field>
+          </div>
+          <Field label={`RPE — Esfuerzo percibido: ${rpe}/10`}>
+            <RPESlider value={rpe} onChange={setRpe} />
+          </Field>
+          <Field label={`Alimentación del día: ${alimentacion}/10`}>
+            <NutritionSlider value={alimentacion} onChange={setAlimentacion} />
+          </Field>
+          <Field label="Horas de sueño previas">
+            <Input type="number" placeholder="8" value={sueno}
+              onChange={e => setSueno(e.target.value)} inputMode="decimal" step="0.5" />
+          </Field>
+          <Field label="Tipo de entrenamiento">
+            <Select value={tipo} onChange={e => setTipo(e.target.value as TrainingType)}>
+              {(['aeróbico','velocidad','técnica','recuperación','ritmo de prueba','lactato','mixto'] as TrainingType[]).map(t => (
+                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        {/* Sensaciones — siempre visibles */}
+        <div className="mt-5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensaciones (opcional)</p>
+          <div className="flex flex-col gap-3">
+
+            <div className="rounded-xl border border-slate-100 p-3">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Antes del entreno</p>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">¿Cómo llegaste?</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['fresco','cansado','pesado','motivado','bajo de energía'] as PreviousState[]).map(s => (
+                    <button key={s} type="button" onClick={() => setEstado(s)}
+                      className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                        estado === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2">
+                <Field label="Comentario previo">
+                  <Textarea placeholder="Cómo te sentís antes, qué te propones…"
+                    value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)} />
+                </Field>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-100 p-3">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Después del entreno</p>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Sensación general</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['muy buena','buena','regular','mala'] as GeneralFeeling[]).map(s => (
+                    <button key={s} type="button" onClick={() => setSensacion(s)}
+                      className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                        sensacion === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2">
+                <Field label="Tu comentario">
+                  <Textarea placeholder="Sensaciones, observaciones, cómo resultó…"
+                    value={comentario} onChange={e => setComentario(e.target.value)} />
+                </Field>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Resultado en vivo — solo cuando hay series */}
         {hayDatos && (
           <div className="mt-4 fade-in">
             {/* Totales */}
@@ -399,83 +477,6 @@ export function ImportWorkout({ mode }: Props) {
                 )}
               </div>
             )}
-
-            {/* Datos de la sesión */}
-            <div className="mt-5 flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Fecha">
-                  <Input type="date" value={fecha}
-                    onChange={e => { setFecha(e.target.value); setFechaTocada(true) }} />
-                </Field>
-                <Field label="Pileta">
-                  <PoolToggle value={pileta} onChange={setPileta} />
-                </Field>
-              </div>
-              <Field label={`RPE — Esfuerzo percibido: ${rpe}/10`}>
-                <RPESlider value={rpe} onChange={setRpe} />
-              </Field>
-              <Field label={`Alimentación del día: ${alimentacion}/10`}>
-                <NutritionSlider value={alimentacion} onChange={setAlimentacion} />
-              </Field>
-              <Field label="Horas de sueño previas">
-                <Input type="number" placeholder="8" value={sueno}
-                  onChange={e => setSueno(e.target.value)} inputMode="decimal" step="0.5" />
-              </Field>
-              <Field label="Tipo de entrenamiento">
-                <Select value={tipo} onChange={e => setTipo(e.target.value as TrainingType)}>
-                  {(['aeróbico','velocidad','técnica','recuperación','ritmo de prueba','lactato','mixto'] as TrainingType[]).map(t => (
-                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-
-            <div className="mt-5">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensaciones (opcional)</p>
-              <div className="flex flex-col gap-3">
-
-                <div className="rounded-xl border border-slate-100 p-3">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Antes del entreno</p>
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">¿Cómo llegaste?</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {(['fresco','cansado','pesado','motivado','bajo de energía'] as PreviousState[]).map(s => (
-                        <button key={s} type="button" onClick={() => setEstado(s)}
-                          className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
-                            estado === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <Field label="Comentario previo">
-                      <Textarea placeholder="Cómo te sentís antes, qué te propones…"
-                        value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)} />
-                    </Field>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-100 p-3">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Después del entreno</p>
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Sensación general</label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {(['muy buena','buena','regular','mala'] as GeneralFeeling[]).map(s => (
-                        <button key={s} type="button" onClick={() => setSensacion(s)}
-                          className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
-                            sensacion === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <Field label="Tu comentario">
-                      <Textarea placeholder="Sensaciones, observaciones, cómo resultó…"
-                        value={comentario} onChange={e => setComentario(e.target.value)} />
-                    </Field>
-                  </div>
-                </div>
-
-              </div>
-            </div>
 
             <Button
               size="lg" fullWidth loading={saving} className="mt-6"
