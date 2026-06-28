@@ -68,6 +68,7 @@ export interface TrainingSession {
   comentarioPrevio?:   string  // sensaciones/observaciones ANTES del entreno
   comentarioNadador:    string  // comentario DESPUÉS del entreno
   comentarioEntrenador: string
+  alimentacion?:        number    // 1–10 autoevaluación nutricional del día
   confirmacion?:        'confirmado' | 'modificado' | 'no_pudo'
   esPlaneada?:          boolean   // true = sesión planificada por el coach (no registrada aún)
 }

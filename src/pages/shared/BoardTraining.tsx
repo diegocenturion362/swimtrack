@@ -5,7 +5,7 @@ import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Field, Input, Select, Textarea, RPESlider, PoolToggle } from '../../components/ui/FormField'
+import { Field, Input, Select, Textarea, RPESlider, NutritionSlider, PoolToggle } from '../../components/ui/FormField'
 import { TimeInput } from '../../components/ui/TimeInput'
 import { MaterialPicker } from '../../components/ui/MaterialPicker'
 import { useStore } from '../../store/useStore'
@@ -185,6 +185,7 @@ export function BoardTraining({ mode }: Props) {
   const [comentario, setComentario] = useState(
     editSession ? (mode === 'swimmer' ? editSession.comentarioNadador : editSession.comentarioEntrenador) : ''
   )
+  const [alimentacion, setAlimentacion] = useState(editSession?.alimentacion ?? 7)
 
   const [bloques, setBloques] = useState<BloqueForm[]>(
     editSets.length ? bloquesDeSets(editSets) : [nuevoBloque()]
@@ -267,6 +268,7 @@ export function BoardTraining({ mode }: Props) {
       comentarioPrevio:     comentarioPrevio || undefined,
       comentarioNadador:    mode === 'swimmer' ? comentario : (editSession?.comentarioNadador ?? ''),
       comentarioEntrenador: mode === 'coach'   ? comentario : (editSession?.comentarioEntrenador ?? ''),
+      alimentacion,
     }
     addSession(session)
 
@@ -425,6 +427,11 @@ export function BoardTraining({ mode }: Props) {
         <div className="mt-4">
           <Field label={`RPE — Esfuerzo percibido: ${rpe}/10`}>
             <RPESlider value={rpe} onChange={setRpe} />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label={`Alimentación del día: ${alimentacion}/10`}>
+            <NutritionSlider value={alimentacion} onChange={setAlimentacion} />
           </Field>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">

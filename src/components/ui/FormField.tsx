@@ -133,6 +133,48 @@ export function RPESlider({ value, onChange }: RPESliderProps) {
   )
 }
 
+// ─── Nutrition Slider ────────────────────────────────────────────────────────
+
+const nutritionColors = [
+  '', 'bg-red-500', 'bg-red-400', 'bg-orange-500',
+  'bg-amber-400', 'bg-yellow-400', 'bg-lime-400',
+  'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-emerald-600',
+]
+
+const nutritionLabels = [
+  '', 'Muy mala', 'Mala', 'Baja', 'Regular',
+  'Moderada', 'Aceptable', 'Buena', 'Muy buena', 'Excelente', 'Perfecta',
+]
+
+export function NutritionSlider({ value, onChange }: RPESliderProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-1">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={[
+              'w-7 h-7 rounded-lg text-xs font-bold transition-all',
+              n <= value
+                ? `${nutritionColors[n]} text-white`
+                : 'bg-slate-100 text-slate-400',
+            ].join(' ')}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      {value > 0 && (
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">{value}/10</span> — {nutritionLabels[value]}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Pool Toggle ──────────────────────────────────────────────────────────────
 
 interface PoolToggleProps {

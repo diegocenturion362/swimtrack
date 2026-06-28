@@ -5,7 +5,7 @@ import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Field, Input, Select, Textarea, RPESlider, PoolToggle } from '../../components/ui/FormField'
+import { Field, Input, Select, Textarea, RPESlider, NutritionSlider, PoolToggle } from '../../components/ui/FormField'
 import { MaterialPicker } from '../../components/ui/MaterialPicker'
 import { useStore } from '../../store/useStore'
 import { buildSimilarityKey } from '../../utils/similarity'
@@ -62,6 +62,7 @@ export function SwimmerAddTraining() {
   const [volumen, setVolumen]   = useState('')
   const [duracion, setDuracion] = useState('')
   const [rpe, setRpe]           = useState(6)
+  const [alimentacion, setAlimentacion] = useState(7)
   const [sueno, setSueno]       = useState('8')
 
   // Paso 3: Sensaciones
@@ -88,6 +89,7 @@ export function SwimmerAddTraining() {
       estadoPrevio:         estado,
       comentarioNadador:    comentario,
       comentarioEntrenador: '',
+      alimentacion,
     }
     addSession(newSession)
 
@@ -209,6 +211,9 @@ export function SwimmerAddTraining() {
             </Field>
             <Field label={`RPE — Esfuerzo percibido: ${rpe}/10`} required>
               <RPESlider value={rpe} onChange={setRpe} />
+            </Field>
+            <Field label={`Alimentación del día: ${alimentacion}/10`}>
+              <NutritionSlider value={alimentacion} onChange={setAlimentacion} />
             </Field>
             <Field label="Horas de sueño previas">
               <Input type="number" placeholder="8" value={sueno} onChange={e => setSueno(e.target.value)} inputMode="decimal" step="0.5" />

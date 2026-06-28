@@ -7,7 +7,7 @@ import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Field, Input, Select, RPESlider, PoolToggle } from '../../components/ui/FormField'
+import { Field, Input, Select, RPESlider, NutritionSlider, PoolToggle } from '../../components/ui/FormField'
 import { useStore } from '../../store/useStore'
 import { parseWorkout } from '../../utils/parseWorkout'
 import { buildSimilarityKey } from '../../utils/similarity'
@@ -62,8 +62,9 @@ export function ImportWorkout({ mode }: Props) {
   const [pileta, setPileta] = useState<PoolSize>('25m')
   const [fecha, setFecha]   = useState(new Date().toISOString().slice(0, 10))
   const [fechaTocada, setFechaTocada] = useState(false)
-  const [rpe, setRpe]       = useState(6)
-  const [sueno, setSueno]   = useState('8')
+  const [rpe, setRpe]           = useState(6)
+  const [alimentacion, setAlimentacion] = useState(7)
+  const [sueno, setSueno]       = useState('8')
   const [saving, setSaving] = useState(false)
   const [done, setDone]     = useState(false)
   const [verNotas, setVerNotas] = useState(false)
@@ -140,6 +141,7 @@ export function ImportWorkout({ mode }: Props) {
       volumenTotal:         calc.metros,
       duracionMinutos:      calc.minutos,
       rpe,
+      alimentacion,
       horasSueno:           parseFloat(sueno) || 8,
       sensacionGeneral:     'buena',
       estadoPrevio:         'fresco',
@@ -402,6 +404,9 @@ export function ImportWorkout({ mode }: Props) {
               </div>
               <Field label={`RPE — Esfuerzo percibido: ${rpe}/10`}>
                 <RPESlider value={rpe} onChange={setRpe} />
+              </Field>
+              <Field label={`Alimentación del día: ${alimentacion}/10`}>
+                <NutritionSlider value={alimentacion} onChange={setAlimentacion} />
               </Field>
               <Field label="Horas de sueño previas">
                 <Input type="number" placeholder="8" value={sueno}

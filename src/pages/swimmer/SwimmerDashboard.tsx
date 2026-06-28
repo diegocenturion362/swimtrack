@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight, Bell, X, Share2 } from 'lucide-react'
+import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight, Bell, X, Share2, Utensils } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -56,6 +56,10 @@ export function SwimmerDashboard() {
   const weekVol    = thisWeek.reduce((a, b) => a + b.volumenTotal, 0)
   const avgRPE     = thisWeek.length > 0
     ? (thisWeek.reduce((a, b) => a + b.rpe, 0) / thisWeek.length).toFixed(1)
+    : '—'
+  const withNutrition = thisWeek.filter(s => s.alimentacion != null)
+  const avgAlimentacion = withNutrition.length > 0
+    ? (withNutrition.reduce((a, b) => a + (b.alimentacion ?? 0), 0) / withNutrition.length).toFixed(1)
     : '—'
 
   // Volumen semanal para gráfico
@@ -282,10 +286,13 @@ export function SwimmerDashboard() {
             {shareFeedback || 'Compartir'}
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <MiniStat icon={<Droplets size={14} />} label="Volumen" value={`${(weekVol / 1000).toFixed(1)} km`} />
           <MiniStat icon={<Calendar size={14} />}  label="Sesiones" value={`${thisWeek.length}`} />
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <MiniStat icon={<TrendingUp size={14} />} label="RPE prom." value={String(avgRPE)} />
+          <MiniStat icon={<Utensils size={14} />} label="Nutrición" value={avgAlimentacion === '—' ? '—' : `${avgAlimentacion}/10`} />
         </div>
 
         {/* Alertas */}
