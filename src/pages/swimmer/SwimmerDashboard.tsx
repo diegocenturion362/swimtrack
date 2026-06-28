@@ -343,11 +343,11 @@ export function SwimmerDashboard() {
           <Card className="mb-4 bg-slate-50 border border-slate-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-500 mb-0.5">CÓDIGO PARA TU ENTRENADOR</p>
+                <p className="text-xs font-semibold text-slate-500 mb-0.5">Tu código para el entrenador</p>
                 <p className="text-2xl font-bold font-mono tracking-widest text-blue-800">{swimmer.codigoAcceso}</p>
               </div>
               <p className="text-xs text-slate-400 leading-tight max-w-[120px] text-right">
-                Compartilo para que te vincule en la app
+                Mandáselo por WhatsApp
               </p>
             </div>
           </Card>

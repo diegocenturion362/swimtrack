@@ -253,7 +253,7 @@ export function ImportWorkout({ mode }: Props) {
             value={texto}
             onChange={e => setTexto(e.target.value)}
             rows={10}
-            placeholder={"Pegá acá el entrenamiento. Ej:\n\n8 x 50 @1'30s libre\n4 x 100 ez gear\n200 ez"}
+            placeholder={"Pegá el mensaje del coach tal como te lo mandó (WhatsApp, notas, etc.).\n\nEj:\n8 x 50 @1'30s libre\n4 x 100 ez gear\n200 ez"}
             className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
           />
         </div>
