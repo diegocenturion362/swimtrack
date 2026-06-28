@@ -167,6 +167,18 @@ export function formatearParciales(parciales: number[], tiempoFinal: number): st
   }).join(' ; ')
 }
 
+// Devuelve los 7 días (Lun–Dom) de la semana que contiene la fecha ISO dada
+export function getWeekDays(anchor: string): string[] {
+  const [y, m, d] = anchor.split('-').map(Number)
+  const dt  = new Date(y, m - 1, d)
+  const dow = dt.getDay() || 7   // 1=Lun … 7=Dom
+  const mon = new Date(y, m - 1, d - (dow - 1))
+  return Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i)
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+  })
+}
+
 // Semanas del año para agrupar por semana
 export function weekKey(iso: string): string {
   const d   = new Date(iso)

@@ -69,6 +69,7 @@ export interface TrainingSession {
   comentarioNadador:    string  // comentario DESPUÉS del entreno
   comentarioEntrenador: string
   confirmacion?:        'confirmado' | 'modificado' | 'no_pudo'
+  esPlaneada?:          boolean   // true = sesión planificada por el coach (no registrada aún)
 }
 
 export interface TrainingSet {

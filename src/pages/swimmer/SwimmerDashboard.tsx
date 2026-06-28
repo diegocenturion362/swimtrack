@@ -40,8 +40,11 @@ export function SwimmerDashboard() {
   const swimmer = swimmers.find(s => s.id === id)
   if (!swimmer) return <div className="p-8 text-center text-slate-400">Nadador no encontrado</div>
 
-  const swSessions = sessions.filter(s => s.swimmerId === id).sort((a, b) => b.fecha.localeCompare(a.fecha))
-  const swSets     = sets.filter(s => s.swimmerId === id)
+  const swSessions = sessions
+    .filter(s => s.swimmerId === id && !s.esPlaneada)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+  const planHoy = sessions.find(s => s.swimmerId === id && s.fecha === todayISO() && s.esPlaneada)
+  const swSets  = sets.filter(s => s.swimmerId === id)
   const swBests    = personalBests.filter(pb => pb.swimmerId === id).sort((a, b) => a.tiempo - b.tiempo)
 
   const status = detectSwimmerStatus(swimmer, swSessions, swSets)
@@ -77,7 +80,7 @@ export function SwimmerDashboard() {
     .filter(s => s.comentarioEntrenador)
     .slice(0, 3)
 
-  // F3: sesión de hoy
+  // F3: sesión de hoy (ya filtradas esPlaneada=false en swSessions)
   const todaySession = swSessions.find(s => s.fecha === todayISO())
 
   // F6: compartir semana
@@ -151,6 +154,25 @@ export function SwimmerDashboard() {
                   RPE {todaySession.rpe} · {feelingEmoji[todaySession.sensacionGeneral]}
                 </p>
               </div>
+            </div>
+          </Card>
+        ) : planHoy ? (
+          <Card className="mb-4 bg-blue-50 border border-blue-200 fade-in">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📋</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Tu entreno de hoy</p>
+                <p className="text-sm font-bold text-slate-800 capitalize">{planHoy.tipoEntrenamiento}</p>
+                {planHoy.comentarioEntrenador && (
+                  <p className="text-xs text-slate-500 mt-0.5 italic truncate">"{planHoy.comentarioEntrenador}"</p>
+                )}
+              </div>
+              <Link
+                to={`/nadador/${id}/registrar`}
+                className="shrink-0 text-xs font-bold text-blue-700 bg-blue-200/60 px-3 py-1.5 rounded-lg"
+              >
+                Registrar →
+              </Link>
             </div>
           </Card>
         ) : (

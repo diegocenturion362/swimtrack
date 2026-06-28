@@ -6,7 +6,9 @@ import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { SetList } from '../../components/swimmers/SetList'
 import { useStore } from '../../store/useStore'
-import { formatDate, formatDateShort, addDays, todayISO } from '../../utils/timeUtils'
+import { formatDate, formatDateShort, addDays, todayISO, formatSmartTime, parseRepTime, formatRepTime } from '../../utils/timeUtils'
+import { strokeLabel } from '../../types'
+import type { TrainingSet } from '../../types'
 
 const feelingEmoji: Record<string, string> = {
   'muy buena': '😊', 'buena': '🙂', 'regular': '😐', 'mala': '😔'
@@ -74,14 +76,64 @@ function ConfirmacionBar({
   )
 }
 
+function QuickEditSheet({ set, onClose, onSave }: {
+  set: TrainingSet
+  onClose: () => void
+  onSave: (promedio: number) => void
+}) {
+  const [raw, setRaw] = useState(formatRepTime(set.tiempoPromedio))
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl p-6 pb-10 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-slate-900">Editar tiempo</h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+            <X size={20} />
+          </button>
+        </div>
+        <p className="text-sm text-slate-500 mb-4">
+          {set.repeticiones}×{set.distancia}m {strokeLabel[set.estilo]}
+        </p>
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          Tiempo promedio por rep
+        </label>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={raw}
+          onChange={e => setRaw(formatSmartTime(e.target.value))}
+          className="w-full mt-2 px-4 py-3 text-center text-2xl font-mono font-bold border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+          placeholder='28"32'
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          Solo números: 2832 → 28"32 · 12832 → 1'28"32
+        </p>
+        <button
+          onClick={() => { const s = parseRepTime(raw); if (s > 0) { onSave(s); onClose() } }}
+          disabled={parseRepTime(raw) <= 0}
+          className="mt-5 w-full bg-blue-600 text-white font-semibold rounded-xl py-3 text-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function MyTrainings() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { sessions, sets, deleteSession, updateSession } = useStore(s => ({
-    sessions: s.sessions, sets: s.sets, deleteSession: s.deleteSession, updateSession: s.updateSession,
+  const { sessions, sets, deleteSession, updateSession, updateSet } = useStore(s => ({
+    sessions: s.sessions, sets: s.sets, deleteSession: s.deleteSession,
+    updateSession: s.updateSession, updateSet: s.updateSet,
   }))
   const [fechaSel, setFechaSel] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editingSet, setEditingSet] = useState<TrainingSet | null>(null)
 
   const swSessions = sessions
     .filter(s => s.swimmerId === id)
@@ -218,7 +270,7 @@ export function MyTrainings() {
                     <p className="text-xs font-bold text-slate-500 mb-1.5">
                       Series ({new Set(sesSets.map(s => s.grupo ?? s.id)).size})
                     </p>
-                    <SetList sets={sesSets} showKey />
+                    <SetList sets={sesSets} showKey onEditSet={setEditingSet} />
                   </div>
                 )}
 
@@ -265,6 +317,14 @@ export function MyTrainings() {
           })}
         </div>
       </PageLayout>
+
+      {editingSet && (
+        <QuickEditSheet
+          set={editingSet}
+          onClose={() => setEditingSet(null)}
+          onSave={promedio => updateSet(editingSet.id, { tiempoPromedio: promedio })}
+        />
+      )}
     </>
   )
 }

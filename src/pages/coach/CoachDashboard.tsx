@@ -1,28 +1,32 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles, Link2, X, Share2,
+  Users, PlusCircle, Trophy, Activity, TrendingUp, AlertTriangle, ChevronRight, Sparkles, Link2, X, Share2, CalendarDays,
 } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { AlertCard } from '../../components/swimmers/AlertCard'
 import { StatusBadge } from '../../components/ui/Badge'
+import { WeekCalendar } from '../../components/coach/WeekCalendar'
 import { useStore } from '../../store/useStore'
 import { detectSwimmerStatus, computeAlerts } from '../../utils/swimmerStatus'
-import { relativeDate, formatTime } from '../../utils/timeUtils'
+import { relativeDate, formatTime, todayISO } from '../../utils/timeUtils'
 import { generateCoachWeekSummary, shareOrCopy } from '../../utils/weekSummary'
-import type { SwimmerStatus } from '../../types'
+import type { SwimmerStatus, TrainingType } from '../../types'
+
+const TIPOS: TrainingType[] = ['aeróbico', 'velocidad', 'técnica', 'recuperación', 'ritmo de prueba', 'lactato', 'mixto']
 
 export function CoachDashboard() {
   const navigate = useNavigate()
-  const { swimmers, sessions, sets, competitions, coach, linkSwimmer } = useStore(s => ({
+  const { swimmers, sessions, sets, competitions, coach, linkSwimmer, addSession } = useStore(s => ({
     swimmers:     s.swimmers,
     sessions:     s.sessions,
     sets:         s.sets,
     competitions: s.competitions,
     coach:        s.coach,
     linkSwimmer:  s.linkSwimmer,
+    addSession:   s.addSession,
   }))
 
   const [mostrarVincular,  setMostrarVincular]  = useState(false)
@@ -31,6 +35,44 @@ export function CoachDashboard() {
   const [vinculandoNombre, setVinculandoNombre] = useState('')
   const [vinculandoLoad,   setVinculandoLoad]   = useState(false)
   const [shareFeedback,    setShareFeedback]    = useState('')
+
+  // F1: planificador de sesiones
+  const [planFecha,     setPlanFecha]     = useState<string | null>(null)
+  const [planSwimmer,   setPlanSwimmer]   = useState('')
+  const [planTipo,      setPlanTipo]      = useState<TrainingType>('aeróbico')
+  const [planNotes,     setPlanNotes]     = useState('')
+  const [planSaving,    setPlanSaving]    = useState(false)
+
+  function openPlan(fecha: string) {
+    setPlanFecha(fecha)
+    setPlanSwimmer(swimmers[0]?.id ?? '')
+    setPlanTipo('aeróbico')
+    setPlanNotes('')
+  }
+
+  function handleSavePlan() {
+    if (!planFecha || !planSwimmer) return
+    setPlanSaving(true)
+    const sw = swimmers.find(s => s.id === planSwimmer)
+    addSession({
+      id:                  `ses-plan-${Date.now()}`,
+      swimmerId:           planSwimmer,
+      fecha:               planFecha,
+      pileta:              sw?.piletaHabitual ?? '25m',
+      tipoEntrenamiento:   planTipo,
+      volumenTotal:        0,
+      duracionMinutos:     0,
+      rpe:                 0,
+      horasSueno:          0,
+      sensacionGeneral:    'buena',
+      estadoPrevio:        'fresco',
+      comentarioNadador:   '',
+      comentarioEntrenador: planNotes,
+      esPlaneada:          true,
+    })
+    setPlanSaving(false)
+    setPlanFecha(null)
+  }
 
   async function handleShareWeek() {
     try {
@@ -58,9 +100,9 @@ export function CoachDashboard() {
     }
   }
 
-  // Calcular estado de cada nadador
+  // Calcular estado de cada nadador (excluir planificadas de stats)
   const summaries = swimmers.map(sw => {
-    const swSessions = sessions.filter(s => s.swimmerId === sw.id)
+    const swSessions = sessions.filter(s => s.swimmerId === sw.id && !s.esPlaneada)
     const swSets     = sets.filter(s => s.swimmerId === sw.id)
     const status     = detectSwimmerStatus(sw, swSessions, swSets)
     const alerts     = computeAlerts(sw, swSessions, swSets)
@@ -68,9 +110,9 @@ export function CoachDashboard() {
     return { swimmer: sw, status, alerts, lastSes }
   })
 
-  // Stats globales
+  // Stats globales (excluir planificadas)
   const weekAgo     = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10)
-  const thisWeek    = sessions.filter(s => s.fecha >= weekAgo)
+  const thisWeek    = sessions.filter(s => s.fecha >= weekAgo && !s.esPlaneada)
   const enProgreso  = summaries.filter(s => s.status === 'En progreso').length
   const estancados  = summaries.filter(s => s.status === 'Estancado' || s.status === 'Sobrecarga').length
 
@@ -79,8 +121,9 @@ export function CoachDashboard() {
     .filter(s => s.alerts.some(a => a.nivel === 'danger' || a.nivel === 'warning'))
     .slice(0, 4)
 
-  // Últimas sesiones
-  const recentSessions = [...sessions]
+  // Últimas sesiones (excluir planificadas)
+  const recentSessions = sessions
+    .filter(s => !s.esPlaneada)
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
     .slice(0, 4)
 
@@ -126,6 +169,25 @@ export function CoachDashboard() {
           <StatCard icon={<TrendingUp size={18} />} label="En progreso" value={enProgreso} color="green" />
           <StatCard icon={<AlertTriangle size={18} />} label="Necesitan atención" value={estancados} color="amber" />
         </div>
+
+        {/* F1 — Calendario semanal */}
+        <Card className="mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Esta semana</p>
+            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+              <span className="inline-block w-3 h-1 bg-blue-500 rounded-full" /> real
+              <span className="inline-block w-3 h-1 border border-blue-300 rounded-full ml-2" /> planif.
+            </div>
+          </div>
+          <WeekCalendar
+            sessions={sessions}
+            swimmers={swimmers}
+            onClickDay={openPlan}
+          />
+          <p className="text-[10px] text-slate-400 text-center mt-2">
+            Tocá un día para planificar un entreno
+          </p>
+        </Card>
 
         {/* Pegar entrenamiento (destacado) */}
         <button
@@ -238,6 +300,77 @@ export function CoachDashboard() {
         </div>
 
       </PageLayout>
+
+      {/* ── Modal: planificar sesión ──────────────────────────────────────── */}
+      {planFecha && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setPlanFecha(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl p-6 pb-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-slate-900">Planificar entreno</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  <CalendarDays size={11} className="inline mr-1" />
+                  {planFecha === todayISO() ? 'Hoy' : planFecha.split('-').reverse().join('/')}
+                </p>
+              </div>
+              <button onClick={() => setPlanFecha(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Nadador */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nadador</label>
+                <select
+                  value={planSwimmer}
+                  onChange={e => setPlanSwimmer(e.target.value)}
+                  className="w-full mt-1.5 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  {swimmers.map(sw => (
+                    <option key={sw.id} value={sw.id}>{sw.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</label>
+                <select
+                  value={planTipo}
+                  onChange={e => setPlanTipo(e.target.value as TrainingType)}
+                  className="w-full mt-1.5 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 capitalize"
+                >
+                  {TIPOS.map(t => (
+                    <option key={t} value={t} className="capitalize">{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Notas */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notas (opcional)</label>
+                <input
+                  type="text"
+                  value={planNotes}
+                  onChange={e => setPlanNotes(e.target.value)}
+                  placeholder="Ej: series 8×100 libre, foco en técnica…"
+                  className="w-full mt-1.5 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleSavePlan}
+              disabled={!planSwimmer || planSaving}
+              className="mt-5 w-full bg-blue-600 text-white font-semibold rounded-xl py-3 text-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
+            >
+              {planSaving ? 'Guardando…' : 'Guardar planificación'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: vincular nadador ────────────────────────────────────────── */}
       {mostrarVincular && (

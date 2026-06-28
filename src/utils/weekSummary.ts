@@ -17,7 +17,7 @@ export function generateSwimmerWeekSummary(
 ): string {
   const { desde, hasta } = currentWeekRange()
   const week = sessions
-    .filter(s => s.swimmerId === swimmer.id && s.fecha >= desde && s.fecha <= hasta)
+    .filter(s => s.swimmerId === swimmer.id && s.fecha >= desde && s.fecha <= hasta && !s.esPlaneada)
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 
   const totalVol = week.reduce((acc, s) => acc + s.volumenTotal, 0)
@@ -64,7 +64,7 @@ export function generateCoachWeekSummary(
   ]
 
   for (const sw of swimmers) {
-    const week     = sessions.filter(s => s.swimmerId === sw.id && s.fecha >= desde && s.fecha <= hasta)
+    const week     = sessions.filter(s => s.swimmerId === sw.id && s.fecha >= desde && s.fecha <= hasta && !s.esPlaneada)
     const totalVol = week.reduce((acc, s) => acc + s.volumenTotal, 0)
     const avgRPE   = week.length > 0
       ? (week.reduce((acc, s) => acc + s.rpe, 0) / week.length).toFixed(1)

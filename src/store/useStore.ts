@@ -55,6 +55,7 @@ interface AppState {
 
   // Acciones – Series
   addSet:    (s: TrainingSet) => void
+  updateSet: (id: string, data: Partial<TrainingSet>) => void
   deleteSet: (id: string) => void
 
   // Acciones – Competencias
@@ -209,6 +210,18 @@ export const useStore = create<AppState>()((set, get) => ({
   addSet: (s) => {
     set(state => ({ sets: [...state.sets, s] }))
     if (supabaseConfigured) db.upsertSet(s)
+  },
+  updateSet: (id, data) => {
+    let actualizado: TrainingSet | undefined
+    set(state => {
+      const sets = state.sets.map(s => {
+        if (s.id !== id) return s
+        actualizado = { ...s, ...data }
+        return actualizado
+      })
+      return { sets }
+    })
+    if (supabaseConfigured && actualizado) db.upsertSet(actualizado)
   },
   deleteSet: (id) => {
     set(state => ({ sets: state.sets.filter(s => s.id !== id) }))

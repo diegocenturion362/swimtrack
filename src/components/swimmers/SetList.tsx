@@ -4,7 +4,11 @@ import { formatRepTime } from '../../utils/timeUtils'
 
 // Lista compacta de series de una sesión. Agrupa automáticamente las partes de
 // un mismo "Trabajo" (mismo grupo) y las muestra como una sola entrada compuesta.
-export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKey?: boolean }) {
+export function SetList({ sets, showKey = false, onEditSet }: {
+  sets: TrainingSet[]
+  showKey?: boolean
+  onEditSet?: (set: TrainingSet) => void
+}) {
   if (sets.length === 0) return null
 
   // Agrupar por `grupo` preservando el orden de aparición
@@ -28,7 +32,7 @@ export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKe
         const esCompuesto = grupo.length > 1
 
         if (esCompuesto) {
-          return <GrupoCompuesto key={gi} sets={grupo} showKey={showKey} />
+          return <GrupoCompuesto key={gi} sets={grupo} showKey={showKey} onEditSet={onEditSet} />
         }
 
         // Parte simple (una sola entrada)
@@ -72,7 +76,10 @@ export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKe
                 )}
                 {showKey && <p className="text-[10px] font-mono text-slate-300 truncate">{s.claveSimilitud}</p>}
               </div>
-              <div className="text-right shrink-0 ml-2">
+              <div
+                className={`text-right shrink-0 ml-2 ${onEditSet && s.tiempoPromedio > 0 ? 'cursor-pointer active:opacity-70' : ''}`}
+                onClick={() => onEditSet && s.tiempoPromedio > 0 && onEditSet(s)}
+              >
                 {s.tiempoPromedio > 0
                   ? <p className="text-xs font-bold text-blue-700">{formatRepTime(s.tiempoPromedio)} prom.</p>
                   : <p className="text-xs font-bold text-slate-500">{metros} m</p>}
@@ -80,6 +87,9 @@ export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKe
                   <p className="text-[10px] text-slate-400">
                     mejor {formatRepTime(s.mejorTiempo)} · peor {formatRepTime(s.peorTiempo)}
                   </p>
+                )}
+                {onEditSet && s.tiempoPromedio > 0 && (
+                  <p className="text-[10px] text-blue-400 mt-0.5">✏ editar</p>
                 )}
               </div>
             </div>
@@ -109,7 +119,7 @@ export function SetList({ sets, showKey = false }: { sets: TrainingSet[]; showKe
 
 // ─── Grupo compuesto: varias partes bajo el mismo trabajo ───────────────────
 
-function GrupoCompuesto({ sets, showKey }: { sets: TrainingSet[]; showKey: boolean }) {
+function GrupoCompuesto({ sets, showKey, onEditSet: _onEditSet }: { sets: TrainingSet[]; showKey: boolean; onEditSet?: (set: TrainingSet) => void }) {
   const first = sets[0]
   const numSeries = first.series ?? 1
   const hasSeries = numSeries > 1
