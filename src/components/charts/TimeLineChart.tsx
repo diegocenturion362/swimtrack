@@ -19,9 +19,10 @@ interface Props {
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
+  const pt = payload[0].payload
   return (
     <div className="bg-slate-900 text-white rounded-xl px-3 py-2 text-xs shadow-xl">
-      <p className="text-slate-400 mb-0.5">{label}</p>
+      <p className="text-slate-400 mb-0.5">{label}{pt.label ? ` · ${pt.label}` : ''}</p>
       <p className="font-bold text-base">{formatTime(payload[0].value)}</p>
     </div>
   )

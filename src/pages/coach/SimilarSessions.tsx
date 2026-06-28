@@ -1,14 +1,27 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { TrendingDown, TrendingUp, Minus, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingDown, TrendingUp, Minus, ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Field, Select } from '../../components/ui/FormField'
+import { TimeLineChart } from '../../components/charts/TimeLineChart'
 import { useStore } from '../../store/useStore'
-import { getSimilarGroups } from '../../utils/similarity'
+import { getSimilarGroups, searchSimilarSets } from '../../utils/similarity'
 import { formatTime, formatDate, deltaLabel } from '../../utils/timeUtils'
 import type { SimilarSetComparison } from '../../types'
+
+// "50m-libre-Pileta25" → "50m · libre · Pileta 25m"
+function formatLooseKey(key: string): string {
+  const m = key.match(/^(\d+)m-([^-]+)-(Pileta\d+)$/)
+  if (!m) return key
+  const pileta = m[3] === 'Pileta25' ? '25m' : '50m'
+  return `${m[1]}m · ${m[2]} · Pileta ${pileta}`
+}
+
+function isLooseKey(key: string): boolean {
+  return /^\d+m-[^-]+-Pileta\d+$/.test(key)
+}
 
 const feelingEmoji: Record<string, string> = {
   'muy buena': '😊', 'buena': '🙂', 'regular': '😐', 'mala': '😔'
@@ -25,13 +38,16 @@ export function SimilarSessions() {
   const [swimmerId, setSwimmerId] = useState(params.get('swimmerId') ?? swimmers[0]?.id ?? '')
   const [selectedKey, setSelectedKey] = useState<string>('')
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
 
   const swimmer = swimmers.find(s => s.id === swimmerId)
+  const isSearching = query.trim().length > 0
 
   const groups: SimilarSetComparison[] = useMemo(() => {
     const swSessions = sessions.filter(s => s.swimmerId === swimmerId)
+    if (isSearching) return searchSimilarSets(swimmerId, query.trim(), sets, swSessions)
     return getSimilarGroups(swimmerId, sets, swSessions)
-  }, [swimmerId, sessions, sets])
+  }, [swimmerId, sessions, sets, query, isSearching])
 
   // Seleccionar el primer grupo por defecto
   const activeKey = selectedKey || groups[0]?.claveSimilitud || ''
@@ -48,50 +64,100 @@ export function SimilarSessions() {
 
         {/* Selector de nadador */}
         <Field label="Nadador">
-          <Select value={swimmerId} onChange={e => { setSwimmerId(e.target.value); setSelectedKey('') }}>
+          <Select value={swimmerId} onChange={e => { setSwimmerId(e.target.value); setSelectedKey(''); setQuery('') }}>
             {swimmers.map(sw => (
               <option key={sw.id} value={sw.id}>{sw.nombre}</option>
             ))}
           </Select>
         </Field>
 
+        {/* Buscador de series */}
+        <div className="relative mt-3 mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setSelectedKey('') }}
+            placeholder="Buscar serie: 8x50, 100 mariposa, 200…"
+            className="w-full pl-8 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          />
+          {query && (
+            <button onClick={() => { setQuery(''); setSelectedKey('') }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        {isSearching && (
+          <p className="text-xs text-blue-600 mb-3 font-medium">
+            🔍 Mostrando series similares a "{query}" — se agrupan por distancia y estilo, independientemente de las repeticiones.
+          </p>
+        )}
+
         {groups.length === 0 ? (
-          <Card className="mt-4 text-center">
+          <Card className="text-center">
             <p className="text-slate-400 text-sm py-4">
-              No hay series repetidas para comparar. Se necesitan al menos 2 apariciones de la misma serie.
+              {isSearching
+                ? `No se encontraron series con "${query}". Probá con otro número o estilo.`
+                : 'No hay series repetidas para comparar. Se necesitan al menos 2 apariciones de la misma serie.'}
             </p>
           </Card>
         ) : (
           <>
             {/* Selector de clave */}
-            <div className="mt-4 mb-4">
+            <div className="mb-4">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                Series disponibles ({groups.length})
+                {isSearching ? 'Resultados' : 'Series disponibles'} ({groups.length})
               </p>
               <div className="flex flex-col gap-1.5">
-                {groups.map(g => (
-                  <button
-                    key={g.claveSimilitud}
-                    onClick={() => setSelectedKey(g.claveSimilitud)}
-                    className={[
-                      'text-left px-3 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all',
-                      activeKey === g.claveSimilitud
-                        ? 'bg-blue-700 text-white'
-                        : 'bg-white border border-slate-200 text-slate-600',
-                    ].join(' ')}
-                  >
-                    <span>{g.claveSimilitud}</span>
-                    <span className={`ml-2 text-[10px] ${activeKey === g.claveSimilitud ? 'text-blue-200' : 'text-slate-400'}`}>
-                      ({g.entries.length} registros)
-                    </span>
-                  </button>
-                ))}
+                {groups.map(g => {
+                  const loose = isLooseKey(g.claveSimilitud)
+                  const label = loose ? formatLooseKey(g.claveSimilitud) : g.claveSimilitud
+                  const isActive = activeKey === g.claveSimilitud
+                  return (
+                    <button
+                      key={g.claveSimilitud}
+                      onClick={() => { setSelectedKey(g.claveSimilitud); setExpandedIdx(null) }}
+                      className={[
+                        'text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition-all',
+                        loose ? 'font-sans' : 'font-mono',
+                        isActive
+                          ? 'bg-blue-700 text-white'
+                          : 'bg-white border border-slate-200 text-slate-600',
+                      ].join(' ')}
+                    >
+                      <span>{label}</span>
+                      <span className={`ml-2 text-[10px] ${isActive ? 'text-blue-200' : 'text-slate-400'}`}>
+                        ({g.entries.length} {g.entries.length === 1 ? 'registro' : 'registros'})
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             {/* Análisis del grupo seleccionado */}
             {activeGroup && (
               <div className="fade-in">
+                {/* Gráfico de evolución (siempre visible) */}
+                {activeGroup.entries.length >= 2 && (
+                  <Card className="mb-4">
+                    <p className="text-sm font-bold text-slate-800 mb-0.5">
+                      {isLooseKey(activeGroup.claveSimilitud)
+                        ? formatLooseKey(activeGroup.claveSimilitud)
+                        : activeGroup.claveSimilitud}
+                    </p>
+                    <p className="text-xs text-slate-400 mb-3">Tiempo promedio por repetición · más arriba = mejor</p>
+                    <TimeLineChart
+                      data={activeGroup.entries.map(e => ({
+                        fecha:  e.session.fecha,
+                        tiempo: e.set.tiempoPromedio,
+                        label:  `${e.set.repeticiones}×${e.set.distancia}m`,
+                      }))}
+                      height={180}
+                    />
+                  </Card>
+                )}
+
                 {/* Mensaje de análisis */}
                 {activeGroup.delta && (
                   <DeltaSummaryCard group={activeGroup} />
@@ -115,6 +181,9 @@ export function SimilarSessions() {
                           <div>
                             <div className="flex items-center gap-2 mb-0.5">
                               <p className="text-xs text-slate-400">{formatDate(entry.session.fecha)}</p>
+                              <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 rounded font-semibold font-mono">
+                                {entry.set.repeticiones}×{entry.set.distancia}m
+                              </span>
                               {isLast && (
                                 <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded font-semibold">
                                   Último
