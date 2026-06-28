@@ -167,14 +167,25 @@ export function SwimmerProfile() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-xs font-bold px-2 py-0.5 rounded-lg inline-block mb-1 ${
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <div className={`text-xs font-bold px-2 py-0.5 rounded-lg inline-block ${
                       ses.rpe >= 8 ? 'bg-red-100 text-red-700' :
                       ses.rpe >= 6 ? 'bg-amber-100 text-amber-700' :
                       'bg-emerald-100 text-emerald-700'
                     }`}>
                       RPE {ses.rpe}
                     </div>
+                    {ses.confirmacion && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                        ses.confirmacion === 'confirmado' ? 'bg-emerald-100 text-emerald-700' :
+                        ses.confirmacion === 'modificado' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                        {ses.confirmacion === 'confirmado' ? '✅ Lo hizo' :
+                         ses.confirmacion === 'modificado' ? '✏️ Modificó' :
+                         '❌ No pudo'}
+                      </span>
+                    )}
                     <p className="text-xs text-slate-400">{relativeDate(ses.fecha)}</p>
                   </div>
                 </div>

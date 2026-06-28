@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight } from 'lucide-react'
+import { Target, Calendar, TrendingUp, MessageCircle, Droplets, ChevronRight, Bell, X } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -11,6 +12,17 @@ import { useStore } from '../../store/useStore'
 import { detectSwimmerStatus, computeAlerts, weeklyVolume } from '../../utils/swimmerStatus'
 import { formatTime, relativeDate } from '../../utils/timeUtils'
 
+// ── Helpers localStorage para F2 ─────────────────────────────────────────────
+function getSeenComments(swimmerId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`seenComments_${swimmerId}`)
+    return new Set(raw ? JSON.parse(raw) : [])
+  } catch { return new Set() }
+}
+function saveSeenComments(swimmerId: string, ids: Set<string>) {
+  localStorage.setItem(`seenComments_${swimmerId}`, JSON.stringify([...ids]))
+}
+
 export function SwimmerDashboard() {
   const { id } = useParams<{ id: string }>()
   const { swimmers, sessions, sets, personalBests } = useStore(s => ({
@@ -19,6 +31,9 @@ export function SwimmerDashboard() {
     sets:          s.sets,
     personalBests: s.personalBests,
   }))
+
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => getSeenComments(id ?? ''))
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   const swimmer = swimmers.find(s => s.id === id)
   if (!swimmer) return <div className="p-8 text-center text-slate-400">Nadador no encontrado</div>
@@ -60,6 +75,18 @@ export function SwimmerDashboard() {
     .filter(s => s.comentarioEntrenador)
     .slice(0, 3)
 
+  // F2: comentarios que el nadador todavía no vio
+  const unseenComments = coachComments.filter(s => !seenIds.has(s.id))
+  const showBanner = unseenComments.length > 0 && !bannerDismissed
+
+  function dismissBanner() {
+    const next = new Set(seenIds)
+    coachComments.forEach(s => next.add(s.id))
+    setSeenIds(next)
+    saveSeenComments(id ?? '', next)
+    setBannerDismissed(true)
+  }
+
   const feelingEmoji: Record<string, string> = {
     'muy buena': '😊', 'buena': '🙂', 'regular': '😐', 'mala': '😔'
   }
@@ -68,6 +95,29 @@ export function SwimmerDashboard() {
     <>
       <Header title={swimmer.nombre} subtitle={swimmer.pruebaPrincipal} showLogout />
       <PageLayout>
+
+        {/* F2 — Banner comentario nuevo del entrenador */}
+        {showBanner && (
+          <div className="mb-4 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3 fade-in">
+            <Bell size={18} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-blue-800">
+                {unseenComments.length === 1
+                  ? 'Tu entrenador dejó un comentario nuevo'
+                  : `Tu entrenador dejó ${unseenComments.length} comentarios nuevos`}
+              </p>
+              <button
+                onClick={dismissBanner}
+                className="text-xs text-blue-600 font-semibold mt-0.5 underline underline-offset-2"
+              >
+                Ver comentarios
+              </button>
+            </div>
+            <button onClick={dismissBanner} className="text-blue-400 shrink-0">
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Hero card */}
         <Card className="mb-4 bg-gradient-to-br from-blue-700 to-blue-900 text-white border-0 fade-in">

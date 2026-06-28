@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { CalendarDays, X, Pencil, Trash2 } from 'lucide-react'
+import { CalendarDays, X, Pencil, Trash2, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
@@ -16,11 +16,69 @@ const stateEmoji: Record<string, string> = {
   'fresco': '⚡', 'cansado': '😴', 'pesado': '🏋️', 'motivado': '🔥', 'bajo de energía': '🪫'
 }
 
+type Confirmacion = 'confirmado' | 'modificado' | 'no_pudo'
+
+const CONF_OPTIONS: { value: Confirmacion; label: string; icon: React.ReactNode; active: string; idle: string }[] = [
+  {
+    value: 'confirmado',
+    label: 'Lo hice',
+    icon: <CheckCircle2 size={13} />,
+    active: 'bg-emerald-500 text-white',
+    idle:   'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  },
+  {
+    value: 'modificado',
+    label: 'Lo modifiqué',
+    icon: <AlertCircle size={13} />,
+    active: 'bg-amber-500 text-white',
+    idle:   'bg-amber-50 text-amber-700 border border-amber-200',
+  },
+  {
+    value: 'no_pudo',
+    label: 'No pude',
+    icon: <XCircle size={13} />,
+    active: 'bg-slate-500 text-white',
+    idle:   'bg-slate-50 text-slate-600 border border-slate-200',
+  },
+]
+
+function ConfirmacionBar({
+  confirmacion,
+  onChange,
+}: {
+  confirmacion?: Confirmacion
+  onChange: (v: Confirmacion) => void
+}) {
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      {!confirmacion && (
+        <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">
+          ¿Pudiste hacer este entreno?
+        </p>
+      )}
+      <div className="flex gap-2">
+        {CONF_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+              confirmacion === opt.value ? opt.active : confirmacion ? 'opacity-30 ' + opt.idle : opt.idle
+            }`}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function MyTrainings() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { sessions, sets, deleteSession } = useStore(s => ({
-    sessions: s.sessions, sets: s.sets, deleteSession: s.deleteSession,
+  const { sessions, sets, deleteSession, updateSession } = useStore(s => ({
+    sessions: s.sessions, sets: s.sets, deleteSession: s.deleteSession, updateSession: s.updateSession,
   }))
   const [fechaSel, setFechaSel] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -164,8 +222,14 @@ export function MyTrainings() {
                   </div>
                 )}
 
+                {/* F4 — Confirmación del nadador */}
+                <ConfirmacionBar
+                  confirmacion={ses.confirmacion}
+                  onChange={v => updateSession(ses.id, { confirmacion: v })}
+                />
+
                 {/* Acciones */}
-                <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={() => navigate(`/nadador/${id}/tablero?edit=${ses.id}`)}
                     className="flex items-center gap-1.5 text-xs font-semibold text-blue-700"

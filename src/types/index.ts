@@ -66,8 +66,9 @@ export interface TrainingSession {
   sensacionGeneral:    GeneralFeeling
   estadoPrevio:        PreviousState
   comentarioPrevio?:   string  // sensaciones/observaciones ANTES del entreno
-  comentarioNadador:   string  // comentario DESPUÉS del entreno
+  comentarioNadador:    string  // comentario DESPUÉS del entreno
   comentarioEntrenador: string
+  confirmacion?:        'confirmado' | 'modificado' | 'no_pudo'
 }
 
 export interface TrainingSet {
