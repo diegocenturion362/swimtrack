@@ -7,14 +7,14 @@ import { Header } from '../../components/layout/Header'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Field, Input, Select, RPESlider, NutritionSlider, PoolToggle } from '../../components/ui/FormField'
+import { Field, Input, Select, Textarea, RPESlider, NutritionSlider, PoolToggle } from '../../components/ui/FormField'
 import { useStore } from '../../store/useStore'
 import { parseWorkout } from '../../utils/parseWorkout'
 import { buildSimilarityKey } from '../../utils/similarity'
 import { formatRepTime } from '../../utils/timeUtils'
 import { strokeLabel } from '../../types'
 import type {
-  TrainingSession, TrainingSet, PoolSize, TrainingType,
+  TrainingSession, TrainingSet, PoolSize, TrainingType, GeneralFeeling, PreviousState,
 } from '../../types'
 
 const EJEMPLO = `2 de Junio de 2026
@@ -65,6 +65,11 @@ export function ImportWorkout({ mode }: Props) {
   const [rpe, setRpe]           = useState(6)
   const [alimentacion, setAlimentacion] = useState(7)
   const [sueno, setSueno]       = useState('8')
+  const [tipo, setTipo]         = useState<TrainingType>('mixto')
+  const [sensacion, setSensacion] = useState<GeneralFeeling>('buena')
+  const [estado, setEstado]       = useState<PreviousState>('fresco')
+  const [comentarioPrevio, setComentarioPrevio] = useState('')
+  const [comentario, setComentario] = useState('')
   const [saving, setSaving] = useState(false)
   const [done, setDone]     = useState(false)
   const [verNotas, setVerNotas] = useState(false)
@@ -76,6 +81,9 @@ export function ImportWorkout({ mode }: Props) {
 
   // Resetear elecciones de rounds al cambiar el texto
   useEffect(() => { setRoundsElegidos({}) }, [texto])
+
+  // Sincronizar tipo con la detección automática (salvo que el usuario lo cambie)
+  useEffect(() => { setTipo(tipoAuto) }, [tipoAuto])
 
   // Si el texto trae una fecha y el usuario no la tocó manualmente, la usamos
   useEffect(() => {
@@ -137,16 +145,17 @@ export function ImportWorkout({ mode }: Props) {
 
     const session: TrainingSession = {
       id: sessionId, swimmerId, fecha, pileta,
-      tipoEntrenamiento:    tipoAuto,
+      tipoEntrenamiento:    tipo,
       volumenTotal:         calc.metros,
       duracionMinutos:      calc.minutos,
       rpe,
       alimentacion,
       horasSueno:           parseFloat(sueno) || 8,
-      sensacionGeneral:     'buena',
-      estadoPrevio:         'fresco',
-      comentarioNadador:    '',
-      comentarioEntrenador: texto.trim(),   // se preserva el texto original completo
+      sensacionGeneral:     sensacion,
+      estadoPrevio:         estado,
+      comentarioPrevio:     comentarioPrevio || undefined,
+      comentarioNadador:    comentario,
+      comentarioEntrenador: texto.trim(),
     }
     addSession(session)
 
@@ -411,6 +420,46 @@ export function ImportWorkout({ mode }: Props) {
               <Field label="Horas de sueño previas">
                 <Input type="number" placeholder="8" value={sueno}
                   onChange={e => setSueno(e.target.value)} inputMode="decimal" step="0.5" />
+              </Field>
+              <Field label="Tipo de entrenamiento">
+                <Select value={tipo} onChange={e => setTipo(e.target.value as TrainingType)}>
+                  {(['aeróbico','velocidad','técnica','recuperación','ritmo de prueba','lactato','mixto'] as TrainingType[]).map(t => (
+                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+
+            <div className="mt-2 flex flex-col gap-4">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Antes del entrenamiento</p>
+              <Field label="¿Cómo llegaste?">
+                <Select value={estado} onChange={e => setEstado(e.target.value as PreviousState)}>
+                  <option value="fresco">Fresco</option>
+                  <option value="motivado">Motivado</option>
+                  <option value="cansado">Cansado</option>
+                  <option value="pesado">Pesado</option>
+                  <option value="bajo de energía">Bajo de energía</option>
+                </Select>
+              </Field>
+              <Field label="Comentario previo">
+                <Textarea value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)}
+                  placeholder="¿Cómo te sentís antes, qué te proponés...?" />
+              </Field>
+            </div>
+
+            <div className="mt-2 flex flex-col gap-4">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Después del entrenamiento</p>
+              <Field label="Sensación general">
+                <Select value={sensacion} onChange={e => setSensacion(e.target.value as GeneralFeeling)}>
+                  <option value="muy buena">Muy buena</option>
+                  <option value="buena">Buena</option>
+                  <option value="regular">Regular</option>
+                  <option value="mala">Mala</option>
+                </Select>
+              </Field>
+              <Field label="Tu comentario">
+                <Textarea value={comentario} onChange={e => setComentario(e.target.value)}
+                  placeholder="Sensaciones, observaciones, ¿cómo resultó...?" />
               </Field>
             </div>
 
