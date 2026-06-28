@@ -247,6 +247,15 @@ export function SwimmerDashboard() {
               </div>
               <ChevronRight size={16} className="ml-auto text-slate-400" />
             </Link>
+            <Link to={`/nadador/${id}/series`}
+              className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-200 text-slate-800 active:scale-95 transition-transform shadow-sm">
+              <span className="text-2xl">📈</span>
+              <div>
+                <p className="font-bold text-sm">Comparar mis series</p>
+                <p className="text-slate-400 text-xs">Buscá 8x50, 100 mariposa…</p>
+              </div>
+              <ChevronRight size={16} className="ml-auto text-slate-400" />
+            </Link>
             <a href="/tutorial-offline.html" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 active:scale-95 transition-transform">
               <span className="text-2xl">📖</span>

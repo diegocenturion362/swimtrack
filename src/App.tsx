@@ -27,6 +27,7 @@ import { SwimmerDashboard }   from './pages/swimmer/SwimmerDashboard'
 import { MyTrainings }         from './pages/swimmer/MyTrainings'
 import { MyMarks }             from './pages/swimmer/MyMarks'
 import { MyEvolution }         from './pages/swimmer/MyEvolution'
+import { MySeries }            from './pages/swimmer/MySeries'
 
 // Compartido
 import { ImportWorkout }          from './pages/shared/ImportWorkout'
@@ -134,6 +135,7 @@ export function App() {
             <Route path="/nadador/:id/competencia-importar"    element={<RequireSwimmer><ImportCompetition mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-tablero"     element={<RequireSwimmer><BoardCompetition mode="swimmer" /></RequireSwimmer>} />
             <Route path="/nadador/:id/competencia-foto"        element={<RequireSwimmer><ImportCompetitionImage mode="swimmer" /></RequireSwimmer>} />
+            <Route path="/nadador/:id/series"                 element={<RequireSwimmer><MySeries /></RequireSwimmer>} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
