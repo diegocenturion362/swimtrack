@@ -430,37 +430,51 @@ export function ImportWorkout({ mode }: Props) {
               </Field>
             </div>
 
-            <div className="mt-2 flex flex-col gap-4">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Antes del entrenamiento</p>
-              <Field label="¿Cómo llegaste?">
-                <Select value={estado} onChange={e => setEstado(e.target.value as PreviousState)}>
-                  <option value="fresco">Fresco</option>
-                  <option value="motivado">Motivado</option>
-                  <option value="cansado">Cansado</option>
-                  <option value="pesado">Pesado</option>
-                  <option value="bajo de energía">Bajo de energía</option>
-                </Select>
-              </Field>
-              <Field label="Comentario previo">
-                <Textarea value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)}
-                  placeholder="¿Cómo te sentís antes, qué te proponés...?" />
-              </Field>
-            </div>
+            <div className="mt-5">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensaciones (opcional)</p>
+              <div className="flex flex-col gap-3">
 
-            <div className="mt-2 flex flex-col gap-4">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Después del entrenamiento</p>
-              <Field label="Sensación general">
-                <Select value={sensacion} onChange={e => setSensacion(e.target.value as GeneralFeeling)}>
-                  <option value="muy buena">Muy buena</option>
-                  <option value="buena">Buena</option>
-                  <option value="regular">Regular</option>
-                  <option value="mala">Mala</option>
-                </Select>
-              </Field>
-              <Field label="Tu comentario">
-                <Textarea value={comentario} onChange={e => setComentario(e.target.value)}
-                  placeholder="Sensaciones, observaciones, ¿cómo resultó...?" />
-              </Field>
+                <div className="rounded-xl border border-slate-100 p-3">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Antes del entreno</p>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">¿Cómo llegaste?</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['fresco','cansado','pesado','motivado','bajo de energía'] as PreviousState[]).map(s => (
+                        <button key={s} type="button" onClick={() => setEstado(s)}
+                          className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                            estado === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Field label="Comentario previo">
+                      <Textarea placeholder="Cómo te sentís antes, qué te propones…"
+                        value={comentarioPrevio} onChange={e => setComentarioPrevio(e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-100 p-3">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Después del entreno</p>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Sensación general</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(['muy buena','buena','regular','mala'] as GeneralFeeling[]).map(s => (
+                        <button key={s} type="button" onClick={() => setSensacion(s)}
+                          className={`py-2 rounded-lg text-[11px] font-semibold capitalize transition-all ${
+                            sensacion === s ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Field label="Tu comentario">
+                      <Textarea placeholder="Sensaciones, observaciones, cómo resultó…"
+                        value={comentario} onChange={e => setComentario(e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
             <Button
