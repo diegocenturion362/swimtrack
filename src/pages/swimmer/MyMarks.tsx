@@ -30,11 +30,20 @@ export function MyMarks() {
     .filter(c => c.swimmerId === id)
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
 
-  const compBests = myBests.filter(pb => pb.fuente === 'competencia')
-  const trainBests = myBests.filter(pb => pb.fuente === 'entrenamiento')
-
   // Agrupar competencias por prueba para el historial
   const pruebas = Array.from(new Set(myComps.map(c => c.prueba))).sort()
+
+  // Mejor tiempo por prueba, derivado directamente de las competencias cargadas
+  const compBests = pruebas
+    .map(prueba => {
+      const conTiempo = myComps.filter(c => c.prueba === prueba && c.tiempoFinal > 0)
+      if (conTiempo.length === 0) return null
+      return conTiempo.reduce((best, c) => c.tiempoFinal < best.tiempoFinal ? c : best)
+    })
+    .filter((c): c is typeof myComps[0] => c !== null)
+    .sort((a, b) => a.tiempoFinal - b.tiempoFinal)
+
+  const trainBests = myBests.filter(pb => pb.fuente === 'entrenamiento')
 
   const [expandedComps, setExpandedComps] = useState<Set<string>>(new Set())
   const [expandedPruebas, setExpandedPruebas] = useState<Set<string>>(new Set())
@@ -98,18 +107,19 @@ export function MyMarks() {
           </Card>
         ) : (
           <div className="flex flex-col gap-2 mb-5">
-            {compBests.map(pb => (
-              <Card key={pb.id} padding="sm" className="border-yellow-200 bg-yellow-50/30">
+            {compBests.map(c => (
+              <Card key={c.id} padding="sm" className="border-yellow-200 bg-yellow-50/30">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-2xl font-black text-slate-900">{formatTime(pb.tiempo)}</p>
-                    <p className="text-sm font-semibold text-slate-700">{pb.prueba}</p>
-                    <p className="text-xs text-slate-400">{pb.pileta} · {formatDate(pb.fecha)}</p>
+                    <p className="text-2xl font-black text-slate-900">{tiempoATexto(c.tiempoFinal)}</p>
+                    <p className="text-sm font-semibold text-slate-700">{c.prueba}</p>
+                    <p className="text-xs text-slate-400">
+                      {c.pileta} · {formatDate(c.fecha)}
+                      {c.nombreTorneo && ` · ${c.nombreTorneo}`}
+                    </p>
                   </div>
                   <Trophy size={20} className="text-yellow-600 mt-1" />
                 </div>
-                {pb.contexto    && <p className="text-xs text-slate-500 mt-1.5">{pb.contexto}</p>}
-                {pb.observacion && <p className="text-xs text-slate-400 mt-0.5 italic">{pb.observacion}</p>}
               </Card>
             ))}
           </div>
